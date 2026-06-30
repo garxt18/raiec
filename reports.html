@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RAIEC Reports - Generate, view and export validation and procurement reports.">
+    <title>Reports – RAIEC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tender-dashboard.css">
+    <link rel="stylesheet" href="reports.css">
+</head>
+<body>
+    <!-- Background -->
+    <div class="video-bg-wrapper" aria-hidden="true">
+        <video class="video-bg" autoplay muted loop playsinline>
+            <source src="videos/bg animation.mp4" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+    </div>
+    <div class="bg-streaks" aria-hidden="true">
+        <div class="streak streak-1"></div>
+        <div class="streak streak-2"></div>
+        <div class="streak streak-3"></div>
+        <div class="streak streak-4"></div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="td-navbar">
+        <div class="td-nav-container">
+            <div class="td-nav-left">
+                <a href="index.html" style="display:flex"><img src="videos/logo.webp" alt="RAIEC" class="td-nav-logo-img"></a>
+                <a href="index.html" class="td-nav-brand">RAIEC</a>
+            </div>
+            <div class="td-nav-right">
+                <span class="td-nav-icon" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </span>
+                <span class="td-nav-icon" aria-label="Notifications">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                    <span class="td-nav-badge">3</span>
+                </span>
+                <div class="td-avatar">G</div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="td-page">
+        <!-- Breadcrumb -->
+        <div class="td-breadcrumb">
+            <a href="index.html">Homepage</a> / <span class="current">Reports</span>
+        </div>
+
+        <!-- Page Header -->
+        <h1 class="td-page-title">Reports</h1>
+        <p class="td-page-subtitle">Generate, view and export validation and procurement reports.</p>
+
+        <!-- Section 1: Report Types -->
+        <section class="td-card td-reveal" aria-label="Report types" style="margin-bottom:28px">
+            <div class="td-card-header">
+                <h2 class="td-card-title">Report Types</h2>
+                <span class="td-card-meta">Choose a report to generate</span>
+            </div>
+            <div class="rp-type-grid">
+                <button class="rp-type-card selected" data-report="Zone-wise Report" type="button">
+                    <div class="td-stat-icon td-icon-blue">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    </div>
+                    <div class="rp-type-title">Zone-wise Report</div>
+                    <div class="rp-type-desc">Estimate volumes and validation outcomes by railway zone.</div>
+                    <div class="rp-type-purpose">Compare tender activity across zones.</div>
+                </button>
+                <button class="rp-type-card" data-report="Monthly Summary" type="button">
+                    <div class="td-stat-icon td-icon-green">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                    </div>
+                    <div class="rp-type-title">Monthly Summary</div>
+                    <div class="rp-type-desc">Consolidated estimate activity for a selected month.</div>
+                    <div class="rp-type-purpose">Monthly management reporting.</div>
+                </button>
+                <button class="rp-type-card" data-report="Audit Trail Report" type="button">
+                    <div class="td-stat-icon td-icon-purple">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13h6M9 17h4"/></svg>
+                    </div>
+                    <div class="rp-type-title">Audit Trail Report</div>
+                    <div class="rp-type-desc">Full timestamped log of officer actions and decisions.</div>
+                    <div class="rp-type-purpose">Compliance and traceability reporting.</div>
+                </button>
+            </div>
+        </section>
+
+        <!-- Section 2: Generate a Report -->
+        <section class="td-card td-reveal" aria-label="Generate a report" style="margin-bottom:28px">
+            <div class="td-card-header">
+                <h2 class="td-card-title">
+                    <span class="rp-title-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    </span>
+                    Generate a Report
+                </h2>
+            </div>
+            <div class="rp-form-grid">
+                <div class="td-field">
+                    <label class="td-field-label">Report Type</label>
+                    <select class="td-select" id="rpReportType">
+                        <option>Zone-wise Report</option>
+                        <option>Monthly Summary</option>
+                        <option>Audit Trail Report</option>
+                    </select>
+                </div>
+                <div class="td-field">
+                    <label class="td-field-label">Zone</label>
+                    <select class="td-select">
+                        <option>Jaipur Zone</option>
+                        <option>Ajmer Zone</option>
+                        <option>Bikaner Zone</option>
+                        <option>Jodhpur Zone</option>
+                    </select>
+                </div>
+                <div class="td-field">
+                    <label class="td-field-label">Tender Number</label>
+                    <input class="td-input" type="text" placeholder="e.g. NWR/2026/0398">
+                </div>
+                <div class="td-field">
+                    <label class="td-field-label">Tender Title</label>
+                    <input class="td-input" type="text" placeholder="e.g. Track renewal works">
+                </div>
+                <div class="td-field">
+                    <label class="td-field-label">Date</label>
+                    <input class="td-input" type="date" placeholder="DD/MM/YYYY">
+                </div>
+            </div>
+            <div class="td-filter-actions">
+                <div class="td-filter-actions-left">
+                    <button class="td-btn td-btn-primary" type="button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Generate Report
+                    </button>
+                    <button class="td-btn td-btn-outline" type="button" id="rpReset">Reset Filters</button>
+                </div>
+                <button class="td-btn td-btn-cyan" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export as PDF
+                </button>
+            </div>
+        </section>
+
+        <!-- Section 3: Report Statistics -->
+        <section class="rp-stats-row" aria-label="Report statistics">
+            <div class="td-stat-card td-reveal">
+                <div>
+                    <div class="td-stat-label">Total Estimates Covered</div>
+                    <div class="td-stat-value" data-count="412">0</div>
+                </div>
+                <div class="td-stat-icon td-icon-blue">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 13h4"/></svg>
+                </div>
+            </div>
+            <div class="td-stat-card td-reveal">
+                <div>
+                    <div class="td-stat-label">Approved</div>
+                    <div class="td-stat-value" data-count="318">0</div>
+                </div>
+                <div class="td-stat-icon td-icon-green">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5"/></svg>
+                </div>
+            </div>
+            <div class="td-stat-card td-reveal">
+                <div>
+                    <div class="td-stat-label">Pending Review</div>
+                    <div class="td-stat-value" data-count="61">0</div>
+                </div>
+                <div class="td-stat-icon td-icon-yellow">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                </div>
+            </div>
+            <div class="td-stat-card td-reveal">
+                <div>
+                    <div class="td-stat-label">Reports Generated</div>
+                    <div class="td-stat-value" data-count="14">0</div>
+                </div>
+                <div class="td-stat-icon td-icon-purple">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Generated Reports Table -->
+        <section class="td-card td-reveal" aria-label="Generated reports" style="margin-top:28px">
+            <div class="td-card-header">
+                <h2 class="td-card-title">Generated Reports</h2>
+                <span class="td-card-meta">Showing 5 of 14 Reports</span>
+            </div>
+            <div class="td-table-wrap">
+                <table class="td-table">
+                    <thead>
+                        <tr>
+                            <th>Report ID</th>
+                            <th>Report Type</th>
+                            <th>Zone / Department</th>
+                            <th>Tender Number</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="td-tender-no">RPT-2026-0091</td>
+                            <td><span class="td-pill td-pill-eval">Zone-wise</span></td>
+                            <td>CIVIL · Jaipur</td>
+                            <td class="td-tender-no">NWR/2026/0341</td>
+                            <td>20 Jun 2026</td>
+                            <td><span class="td-pill td-pill-open">Ready</span></td>
+                            <td>
+                                <div class="td-row-actions">
+                                    <button class="td-action-btn" data-tooltip="View Report" aria-label="View Report"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Download PDF" aria-label="Download PDF"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Share Report" aria-label="Share Report"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="td-tender-no">RPT-2026-0090</td>
+                            <td><span class="td-pill td-pill-eval">Zone-wise</span></td>
+                            <td>All Departments · Jaipur</td>
+                            <td class="td-tender-no">NWR/2026/0298</td>
+                            <td>15 Jun 2026</td>
+                            <td><span class="td-pill td-pill-eval">Ready</span></td>
+                            <td>
+                                <div class="td-row-actions">
+                                    <button class="td-action-btn" data-tooltip="View Report" aria-label="View Report"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Download PDF" aria-label="Download PDF"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Share Report" aria-label="Share Report"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="td-tender-no">RPT-2026-0089</td>
+                            <td><span class="td-pill td-pill-final">Monthly Summary</span></td>
+                            <td>All Departments · NWR</td>
+                            <td>—</td>
+                            <td>02 Jun 2026</td>
+                            <td><span class="td-pill td-pill-open">Ready</span></td>
+                            <td>
+                                <div class="td-row-actions">
+                                    <button class="td-action-btn" data-tooltip="View Report" aria-label="View Report"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Download PDF" aria-label="Download PDF"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Share Report" aria-label="Share Report"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="td-tender-no">RPT-2026-0088</td>
+                            <td><span class="td-pill td-pill-review">Audit Trail</span></td>
+                            <td>EST-2026-0398</td>
+                            <td class="td-tender-no">NWR/2026/0398</td>
+                            <td>19 Jun 2026</td>
+                            <td><span class="td-pill td-pill-open">Ready</span></td>
+                            <td>
+                                <div class="td-row-actions">
+                                    <button class="td-action-btn" data-tooltip="View Report" aria-label="View Report"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Download PDF" aria-label="Download PDF"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Share Report" aria-label="Share Report"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="td-tender-no">RPT-2026-0087</td>
+                            <td><span class="td-pill td-pill-eval">Zone-wise</span></td>
+                            <td>CONST · Ajmer</td>
+                            <td class="td-tender-no">NWR/2026/0287</td>
+                            <td>05 May 2026</td>
+                            <td><span class="td-pill td-pill-generating">Generating</span></td>
+                            <td>
+                                <div class="td-row-actions">
+                                    <button class="td-action-btn" data-tooltip="View Report" aria-label="View Report"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Download PDF" aria-label="Download PDF"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Share Report" aria-label="Share Report"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="reports.js"></script>
+</body>
+</html>

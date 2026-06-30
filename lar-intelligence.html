@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RAIEC LAR Intelligence Center - Last Accepted Rates database built from approved non-scheduled items.">
+    <title>LAR Intelligence Center – RAIEC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tender-dashboard.css">
+</head>
+<body>
+    <!-- Background -->
+    <div class="video-bg-wrapper" aria-hidden="true">
+        <video class="video-bg" autoplay muted loop playsinline>
+            <source src="videos/bg animation.mp4" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+    </div>
+    <div class="bg-streaks" aria-hidden="true">
+        <div class="streak streak-1"></div>
+        <div class="streak streak-2"></div>
+        <div class="streak streak-3"></div>
+        <div class="streak streak-4"></div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="td-navbar">
+        <div class="td-nav-container">
+            <div class="td-nav-left">
+                <a href="index.html" style="display:flex"><img src="videos/logo.webp" alt="RAIEC" class="td-nav-logo-img"></a>
+                <a href="index.html" class="td-nav-brand">RAIEC</a>
+            </div>
+            <ul class="td-nav-menu">
+                <li><a href="upload/step1-upload.html">Upload Estimate</a></li>
+                <li><a href="tender-dashboard.html">Dashboard</a></li>
+                <li><a href="lar-intelligence.html" class="active">LAR Dataset</a></li>
+                <li><a href="guide.html">Guide</a></li>
+            </ul>
+            <div class="td-nav-right">
+                <div class="td-avatar">G</div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="td-page">
+        <!-- Breadcrumb -->
+        <div class="td-breadcrumb">
+            <a href="index.html">Homepage</a> / <span class="current">LAR Intelligence Center</span>
+        </div>
+
+        <!-- Page Header -->
+        <h1 class="td-page-title">LAR Intelligence Center</h1>
+        <p class="td-page-subtitle">Latest Accepted Rates database and AI-powered rate intelligence.</p>
+
+        <!-- LAR Intelligence Center -->
+        <section class="lar-section" aria-label="LAR Intelligence Center">
+            <div class="lar-layout">
+                <!-- LEFT COLUMN -->
+                <div class="lar-left">
+                    <div class="td-card td-reveal">
+                        <div class="td-card-header">
+                            <div>
+                                <h3 class="td-card-title">LAR Database</h3>
+                                <p class="td-page-subtitle" style="font-size:13px;margin:4px 0 0">Latest Accepted Rates used for tender cost estimation and AI analysis.</p>
+                            </div>
+                            <button class="td-btn td-btn-primary" type="button" id="larAddBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                                Add New LAR
+                            </button>
+                        </div>
+
+                        <!-- Mini KPI Row -->
+                        <div class="lar-kpi-row">
+                            <div class="lar-kpi" data-accent="blue">
+                                <div class="lar-kpi-label">Total Records</div>
+                                <div class="lar-kpi-value" id="larKpiTotal" data-count="0" data-format="comma">—</div>
+                                <div class="lar-kpi-delta">accepted NS rates</div>
+                            </div>
+                            <div class="lar-kpi" data-accent="cyan">
+                                <div class="lar-kpi-label">New This Month</div>
+                                <div class="lar-kpi-value" id="larKpiNew" data-count="0">—</div>
+                                <div class="lar-kpi-delta">added this month</div>
+                            </div>
+                            <div class="lar-kpi" data-accent="purple">
+                                <div class="lar-kpi-label">Auto Updated</div>
+                                <div class="lar-kpi-value" id="larKpiAuto" data-count="0">—</div>
+                                <div class="lar-kpi-delta">auto-added on approval</div>
+                            </div>
+                            <div class="lar-kpi" data-accent="green">
+                                <div class="lar-kpi-label">Source Tenders</div>
+                                <div class="lar-kpi-value" id="larKpiSources" data-count="0">—</div>
+                                <div class="lar-kpi-delta">contributing tenders</div>
+                            </div>
+                        </div>
+
+                        <!-- Records sub-header + filters -->
+                        <div class="lar-records-head">
+                            <h4 class="lar-records-title">LAR Records</h4>
+                        </div>
+                        <div class="lar-filters">
+                            <input class="td-input" type="text" id="larSearch" placeholder="Search item code or description">
+                            <select class="td-select" id="larCatFilter">
+                                <option value="">All Categories</option>
+                                <option value="USSOR">USSOR</option>
+                                <option value="DSR">DSR</option>
+                                <option value="LAR">LAR</option>
+                            </select>
+                        </div>
+
+                        <!-- Dynamic Table -->
+                        <div class="td-table-wrap">
+                            <table class="td-table lar-table">
+                                <thead>
+                                    <tr>
+                                        <th data-sort="itemCode">Item Code</th>
+                                        <th data-sort="description">Description</th>
+                                        <th data-sort="value">LAR Value</th>
+                                        <th data-sort="unit">Unit</th>
+                                        <th data-sort="updatedOn">Updated On</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="larTableBody">
+                                    <!-- Rows rendered dynamically by tender-dashboard.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="lar-records-foot">
+                            <a href="#" class="panel-link" id="larViewAll">View All <span id="larTotalCount">1,247</span> Records &rarr;</a>
+                        </div>
+                    </div>
+
+                    <!-- AI Insights -->
+                    <div class="td-card td-reveal lar-insights">
+                        <div class="td-card-header">
+                            <h3 class="td-card-title">AI Insights</h3>
+                        </div>
+                        <div class="lar-insights-grid" id="larInsightsGrid">
+                            <!-- Rendered dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN -->
+                <div class="lar-right">
+                    <!-- Recent Updates -->
+                    <div class="td-card td-reveal">
+                        <div class="td-card-header">
+                            <h3 class="td-card-title">Recent Updates</h3>
+                        </div>
+                        <div class="td-notif-list" id="larUpdatesList">
+                            <!-- Rendered dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Auto-Update Flow -->
+                    <div class="td-card td-reveal">
+                        <div class="td-card-header">
+                            <h3 class="td-card-title">Auto-Update Flow</h3>
+                        </div>
+                        <div class="lar-flow">
+                            <div class="lar-flow-node">
+                                <span class="lar-flow-dot"></span>
+                                <span class="lar-flow-text">Tender Finalized</span>
+                            </div>
+                            <div class="lar-flow-line"></div>
+                            <div class="lar-flow-node">
+                                <span class="lar-flow-dot"></span>
+                                <span class="lar-flow-text">Officer Verification</span>
+                            </div>
+                            <div class="lar-flow-line"></div>
+                            <div class="lar-flow-node">
+                                <span class="lar-flow-dot lar-flow-dot-final"></span>
+                                <span class="lar-flow-text">LAR Updated</span>
+                            </div>
+                        </div>
+                        <p class="lar-flow-note">Rate auto-syncing to database after concurrence. Triggers transactional update.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="auth.js"></script>
+    <script src="tender-dashboard.js"></script>
+</body>
+</html>

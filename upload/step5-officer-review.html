@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officer Review – RAIEC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="workflow.css">
+</head>
+<body>
+    <div class="video-bg-wrapper" aria-hidden="true">
+        <video class="video-bg" autoplay muted loop playsinline><source src="../videos/bg animation.mp4" type="video/mp4"></video>
+        <div class="video-overlay"></div>
+    </div>
+    <div class="bg-streaks" aria-hidden="true">
+        <div class="streak streak-1"></div><div class="streak streak-2"></div>
+        <div class="streak streak-3"></div><div class="streak streak-4"></div>
+    </div>
+    <nav class="wf-navbar">
+        <div class="wf-nav-container">
+            <div class="wf-nav-left">
+                <img src="../videos/logo.webp" alt="RAIEC" class="wf-nav-logo-img">
+                <a href="../index.html" class="wf-nav-brand">RAIEC</a>
+            </div>
+            <ul class="wf-nav-links">
+                <li><a href="step1-upload.html" class="active">Upload estimate</a></li>
+                <li><a href="../tender-dashboard.html">Dashboard</a></li>
+                <li><a href="../lar-intelligence.html">LAR Dataset</a></li>
+                <li><a href="../guide.html">Guide</a></li>
+            </ul>
+            <div class="wf-nav-right"><div class="wf-avatar">G</div></div>
+        </div>
+    </nav>
+
+    <main class="wf-page">
+        <div class="wf-breadcrumb">
+            <a href="../index.html">Homepage</a> / <a href="step1-upload.html">Upload estimate</a> / <span>Officer review</span>
+        </div>
+        <h1 class="wf-page-title">Officer review</h1>
+        <p class="wf-page-subtitle">Review the full pipeline output below. All AI flags are advisory — you make the final call on approval.</p>
+
+        <div class="wf-stepper">
+            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">Upload</span><div class="wf-step-line"></div></div>
+            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">OCR extract</span><div class="wf-step-line"></div></div>
+            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">Rate match</span><div class="wf-step-line"></div></div>
+            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">AI analysis</span><div class="wf-step-line"></div></div>
+            <div class="wf-step active"><div class="wf-step-circle">5</div><span class="wf-step-label">Officer review</span></div>
+        </div>
+
+        <!-- Alert Banner -->
+        <div class="wf-alert-banner">
+            <div class="wf-alert-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 22h20L12 2z"/><path d="M12 9v4M12 17h.01"/></svg>
+            </div>
+            <div class="wf-alert-text">
+                <div class="wf-alert-title" id="orAlertTitle">Reviewing…</div>
+                <div class="wf-alert-desc" id="orAlertDesc">—</div>
+            </div>
+            <div class="wf-alert-value">
+                <div class="wf-alert-value-label">Estimate value</div>
+                <div class="wf-alert-value-amount" id="orEstValue">—</div>
+            </div>
+        </div>
+
+        <!-- Review Layout -->
+        <div class="wf-review-layout">
+            <div class="wf-main-content">
+                <h2 class="wf-section-title" style="margin-bottom:16px">Pipeline summary</h2>
+
+                <!-- Expandable: Upload & OCR -->
+                <div class="wf-expand-section open">
+                    <div class="wf-expand-header">
+                        <div class="wf-expand-icon">✓</div>
+                        <div class="wf-expand-title">Upload & OCR extract</div>
+                        <div class="wf-expand-meta" id="orOcrMeta">—</div>
+                        <div class="wf-expand-toggle">▼</div>
+                    </div>
+                    <div class="wf-expand-body">
+                        <div class="wf-expand-row"><span class="wf-expand-row-label">Line items extracted</span><span class="wf-expand-row-value" id="orLineItems">—</span></div>
+                        <div class="wf-expand-row"><span class="wf-expand-row-label">Tender reference</span><span class="wf-expand-row-value" id="orTenderRef">—</span></div>
+                    </div>
+                </div>
+
+                <!-- Expandable: Rate Match -->
+                <div class="wf-expand-section open">
+                    <div class="wf-expand-header">
+                        <div class="wf-expand-icon">✓</div>
+                        <div class="wf-expand-title">Rate match</div>
+                        <div class="wf-expand-meta" id="orRmMeta">—</div>
+                        <div class="wf-expand-toggle">▼</div>
+                    </div>
+                    <div class="wf-expand-body" id="orRmBody"></div>
+                </div>
+
+                <!-- Expandable: AI Analysis -->
+                <div class="wf-expand-section open">
+                    <div class="wf-expand-header">
+                        <div class="wf-expand-icon">✓</div>
+                        <div class="wf-expand-title" id="orAiTitle">AI analysis</div>
+                        <div class="wf-expand-meta" id="orAiMeta">—</div>
+                        <div class="wf-expand-toggle">▼</div>
+                    </div>
+                    <div class="wf-expand-body" id="orAiBody"></div>
+                </div>
+
+                <!-- Officer Remarks -->
+                <div class="wf-textarea-group">
+                    <div class="wf-textarea-label">Officer remarks (required for override)</div>
+                    <textarea class="wf-textarea" placeholder="e.g. Structural steel rate verified against current market quotation, approved with justification attached..."></textarea>
+                </div>
+
+                <!-- Actions -->
+                <div class="wf-actions">
+                    <button class="wf-btn wf-btn-success" onclick="approveTender()">Approve estimate</button>
+                    <button class="wf-btn wf-btn-danger" onclick="rejectTender()">Reject &amp; send back</button>
+                    <button class="wf-btn wf-btn-dark">Request more info</button>
+                </div>
+                <div id="reviewMessage" hidden></div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="wf-sidebar">
+                <div class="wf-card">
+                    <h3 class="wf-sidebar-title">Submission details</h3>
+                    <table class="wf-detail-table">
+                        <tr><td>Estimate ID</td><td id="orSubId">—</td></tr>
+                        <tr><td>Department</td><td id="orSubDept">—</td></tr>
+                        <tr><td>Zone</td><td id="orSubZone">—</td></tr>
+                        <tr><td>Contract type</td><td id="orSubContract">—</td></tr>
+                        <tr><td>Submitted by</td><td id="orSubBy">—</td></tr>
+                    </table>
+                </div>
+                <div class="wf-card">
+                    <h3 class="wf-sidebar-title">Audit trail</h3>
+                    <ul class="wf-audit-list">
+                        <li class="wf-audit-item">
+                            <div class="wf-audit-dot"></div>
+                            <div class="wf-audit-content"><div class="wf-audit-title">PDF uploaded</div><div class="wf-audit-time">20 Jun 2026, 11:42 AM</div></div>
+                        </li>
+                        <li class="wf-audit-item">
+                            <div class="wf-audit-dot"></div>
+                            <div class="wf-audit-content"><div class="wf-audit-title">OCR extraction completed</div><div class="wf-audit-time">20 Jun 2026, 11:44 AM</div></div>
+                        </li>
+                        <li class="wf-audit-item">
+                            <div class="wf-audit-dot"></div>
+                            <div class="wf-audit-content"><div class="wf-audit-title">Rate matching completed</div><div class="wf-audit-time">20 Jun 2026, 11:45 AM</div></div>
+                        </li>
+                        <li class="wf-audit-item">
+                            <div class="wf-audit-dot" style="background:var(--accent-blue)"></div>
+                            <div class="wf-audit-content"><div class="wf-audit-title">AI analysis completed — 2 FAIL flags</div><div class="wf-audit-time">20 Jun 2026, 11:46 AM</div></div>
+                        </li>
+                        <li class="wf-audit-item">
+                            <div class="wf-audit-dot" style="background:var(--accent-blue)"></div>
+                            <div class="wf-audit-content"><div class="wf-audit-title">Sent to officer review</div><div class="wf-audit-time">20 Jun 2026, 11:47 AM</div></div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <footer class="wf-footer">
+            <span>RAIEC · Railway automated intelligent estimate checker</span>
+            <div class="wf-footer-links"><a href="#">Privacy policy</a><a href="#">Terms of use</a><a href="#">Contact</a><a href="#">Documentation</a></div>
+        </footer>
+    </main>
+    <script src="../auth.js"></script>
+    <script src="workflow.js"></script>
+</body>
+</html>

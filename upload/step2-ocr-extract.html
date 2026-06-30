@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Extraction – RAIEC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="workflow.css">
+</head>
+<body>
+    <div class="video-bg-wrapper" aria-hidden="true">
+        <video class="video-bg" autoplay muted loop playsinline>
+            <source src="../videos/bg animation.mp4" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+    </div>
+    <div class="bg-streaks" aria-hidden="true">
+        <div class="streak streak-1"></div><div class="streak streak-2"></div>
+        <div class="streak streak-3"></div><div class="streak streak-4"></div>
+    </div>
+
+    <nav class="wf-navbar">
+        <div class="wf-nav-container">
+            <div class="wf-nav-left">
+                <img src="../videos/logo.webp" alt="RAIEC" class="wf-nav-logo-img">
+                <a href="../index.html" class="wf-nav-brand">RAIEC</a>
+            </div>
+            <ul class="wf-nav-links">
+                <li><a href="step1-upload.html" class="active">Upload estimate</a></li>
+                <li><a href="../tender-dashboard.html">Dashboard</a></li>
+                <li><a href="../lar-intelligence.html">LAR Dataset</a></li>
+                <li><a href="../guide.html">Guide</a></li>
+            </ul>
+            <div class="wf-nav-right"><div class="wf-avatar">G</div></div>
+        </div>
+    </nav>
+
+    <main class="wf-page">
+        <div class="wf-breadcrumb">
+            <a href="../index.html">Homepage</a> / <a href="step1-upload.html">Upload estimate</a> / <span>OCR extract</span>
+        </div>
+        <h1 class="wf-page-title">Extracting your estimate</h1>
+        <p class="wf-page-subtitle">Reading line items from your scanned PDF before they're checked against rate references.</p>
+
+        <!-- Stepper -->
+        <div class="wf-stepper">
+            <div class="wf-step completed">
+                <div class="wf-step-circle">✓</div>
+                <span class="wf-step-label">Upload</span>
+                <div class="wf-step-line"></div>
+            </div>
+            <div class="wf-step active">
+                <div class="wf-step-circle">2</div>
+                <span class="wf-step-label">OCR extract</span>
+                <div class="wf-step-line"></div>
+            </div>
+            <div class="wf-step inactive">
+                <div class="wf-step-circle">3</div>
+                <span class="wf-step-label">Rate match</span>
+                <div class="wf-step-line"></div>
+            </div>
+            <div class="wf-step inactive">
+                <div class="wf-step-circle">4</div>
+                <span class="wf-step-label">AI analysis</span>
+                <div class="wf-step-line"></div>
+            </div>
+            <div class="wf-step inactive">
+                <div class="wf-step-circle">5</div>
+                <span class="wf-step-label">Officer review</span>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="wf-summary-row">
+            <div class="wf-summary-card">
+                <div class="label">Schedules</div>
+                <div class="value blue" id="ocrScheduleCount">—</div>
+            </div>
+            <div class="wf-summary-card">
+                <div class="label">Line items found</div>
+                <div class="value" id="ocrItemCount">—</div>
+            </div>
+        </div>
+
+        <!-- Extracted Line Items -->
+        <h2 class="wf-section-title">Extracted line items</h2>
+        <p class="wf-section-subtitle">Line items read from the uploaded estimate, ready for rate matching.</p>
+
+        <table class="wf-table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Qty</th>
+                    <th>Rate (₹)</th>
+                </tr>
+            </thead>
+            <tbody id="ocrTableBody">
+                <tr><td colspan="3">Loading extracted items…</td></tr>
+            </tbody>
+        </table>
+        <p id="ocrShowing" style="font-size:12px;color:var(--text-muted);margin-top:12px;"></p>
+
+        <!-- Actions -->
+        <div class="wf-actions">
+            <button class="wf-btn wf-btn-primary" onclick="navigateTo('step3-rate-match.html')">Confirm extraction and continue</button>
+            <button class="wf-btn wf-btn-secondary" onclick="navigateTo('step1-upload.html')">Re-upload PDF</button>
+        </div>
+
+        <footer class="wf-footer">
+            <span>RAIEC · Railway automated intelligent estimate checker</span>
+            <div class="wf-footer-links">
+                <a href="#">Privacy policy</a><a href="#">Terms of use</a><a href="#">Contact</a><a href="#">Documentation</a>
+            </div>
+        </footer>
+    </main>
+    <script src="../auth.js"></script>
+    <script src="workflow.js"></script>
+</body>
+</html>

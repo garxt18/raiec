@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Estimate – RAIEC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="workflow.css">
+</head>
+<body>
+    <!-- Background -->
+    <div class="video-bg-wrapper" aria-hidden="true">
+        <video class="video-bg" autoplay muted loop playsinline>
+            <source src="../videos/bg animation.mp4" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+    </div>
+    <div class="bg-streaks" aria-hidden="true">
+        <div class="streak streak-1"></div>
+        <div class="streak streak-2"></div>
+        <div class="streak streak-3"></div>
+        <div class="streak streak-4"></div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="wf-navbar">
+        <div class="wf-nav-container">
+            <div class="wf-nav-left">
+                <img src="../videos/logo.webp" alt="RAIEC" class="wf-nav-logo-img">
+                <a href="../index.html" class="wf-nav-brand">RAIEC</a>
+            </div>
+            <ul class="wf-nav-links">
+                <li><a href="step1-upload.html" class="active">Upload estimate</a></li>
+                <li><a href="../tender-dashboard.html">Dashboard</a></li>
+                <li><a href="../lar-intelligence.html">LAR Dataset</a></li>
+                <li><a href="../guide.html">Guide</a></li>
+            </ul>
+            <div class="wf-nav-right">
+                <div class="wf-avatar">G</div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <main class="wf-page">
+        <div class="wf-breadcrumb">
+            <a href="../index.html">Homepage</a> / <a href="step1-upload.html">Upload estimate</a> / <span>Upload</span>
+        </div>
+        <h1 class="wf-page-title">New submission</h1>
+        <p class="wf-page-subtitle">Drop a scanned or native PDF below. Line items are extracted automatically.</p>
+
+        <!-- Stepper -->
+        <div class="wf-stepper">
+            <div class="wf-step active">
+                <div class="wf-step-circle">1</div>
+                <span class="wf-step-label">Upload</span>
+                <div class="wf-step-line"></div>
+            </div>
+            <div class="wf-step inactive">
+                <div class="wf-step-circle">2</div>
+                <span class="wf-step-label">OCR extract</span>
+                <div class="wf-step-line"></div>
+            </div>
+            <div class="wf-step inactive">
+                <div class="wf-step-circle">3</div>
+                <span class="wf-step-label">Rate match</span>
+                <div class="wf-step-line"></div>
+            </div>
+            <div class="wf-step inactive">
+                <div class="wf-step-circle">4</div>
+                <span class="wf-step-label">AI analysis</span>
+                <div class="wf-step-line"></div>
+            </div>
+            <div class="wf-step inactive">
+                <div class="wf-step-circle">5</div>
+                <span class="wf-step-label">Officer review</span>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="wf-upload-layout">
+            <div class="wf-main-content">
+                <!-- Dropzone -->
+                <div class="wf-dropzone" role="button" tabindex="0" aria-label="Upload PDF file">
+                    <div class="wf-dropzone-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <div class="wf-dropzone-text">Drag and drop your PDF here</div>
+                    <div class="wf-dropzone-hint">PDF only · Max 25MB</div>
+                    <button class="wf-btn wf-btn-secondary" type="button">Browse files</button>
+                    <div class="wf-dropzone-badges">
+                        <span>Native PDF</span>
+                        <span>Scanned PDF</span>
+                        <span>300 DPI+</span>
+                    </div>
+                </div>
+                <input type="file" id="fileInput" accept=".pdf" hidden>
+
+                <!-- File Preview -->
+                <div class="wf-file-preview" style="display:none">
+                    <div class="wf-file-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div class="wf-file-info">
+                        <div class="wf-file-name">NWR_JP_2026_0417_tender.pdf</div>
+                        <div class="wf-file-size">8.2 MB · Uploading...</div>
+                        <div class="wf-file-progress"><div class="wf-file-progress-bar"></div></div>
+                    </div>
+                    <button class="wf-file-remove" aria-label="Remove file">&times;</button>
+                </div>
+
+                <!-- Estimate Details Form -->
+                <div class="wf-form-section">
+                    <h2 class="wf-form-title">Estimate details</h2>
+                    <div class="wf-form-grid">
+                        <div class="wf-form-group">
+                            <label class="wf-form-label">Department</label>
+                            <input class="wf-form-input" type="text" value="Civil & Construction" readonly>
+                        </div>
+                        <div class="wf-form-group">
+                            <label class="wf-form-label">Zone</label>
+                            <select class="wf-form-select">
+                                <option>Jaipur</option>
+                                <option>Jodhpur</option>
+                                <option>Bikaner</option>
+                                <option>Ajmer</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="wf-form-grid">
+                        <div class="wf-form-group">
+                            <label class="wf-form-label">Contract type</label>
+                            <div class="wf-toggle-group">
+                                <button class="wf-toggle-btn active" type="button">Works</button>
+                            </div>
+                        </div>
+                        <div class="wf-form-group">
+                            <label class="wf-form-label">Tender reference no. (optional)</label>
+                            <input class="wf-form-input" type="text" placeholder="Auto-detected from the PDF">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="wf-actions">
+                    <button id="submitBtn" class="wf-btn wf-btn-primary" onclick="uploadEstimate()">Submit for validation</button>
+                    <button class="wf-btn wf-btn-secondary" onclick="navigateTo('../index.html')">Cancel</button>
+                </div>
+                <div id="uploadMessage" hidden></div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="wf-sidebar">
+                <div class="wf-card">
+                    <h3 class="wf-sidebar-title">Submission guidelines</h3>
+                    <ul class="wf-guideline-list">
+                        <li>Scan at 300 dpi or higher for clean OCR</li>
+                        <li>Include the full rate analysis sheet</li>
+                        <li>One tender reference per upload</li>
+                        <li>Flags are advisory, the officer decides</li>
+                    </ul>
+                </div>
+                <div class="wf-card">
+                    <h3 class="wf-sidebar-title">Recent uploads</h3>
+                    <div class="wf-recent-item">
+                        <div><div class="wf-recent-id">EST-2026-0412</div><div class="wf-recent-dept">CIVIL · Works</div></div>
+                        <span class="wf-badge wf-badge-green">Validated</span>
+                    </div>
+                    <div class="wf-recent-item">
+                        <div><div class="wf-recent-id">EST-2026-0405</div><div class="wf-recent-dept">CONST · Works</div></div>
+                        <span class="wf-badge wf-badge-yellow">2 warnings</span>
+                    </div>
+                    <div class="wf-recent-item">
+                        <div><div class="wf-recent-id">EST-2026-0398</div><div class="wf-recent-dept">CIVIL · Works</div></div>
+                        <span class="wf-badge wf-badge-red">Needs justification</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="wf-footer">
+            <span>RAIEC · Railway automated intelligent estimate checker</span>
+            <div class="wf-footer-links">
+                <a href="#">Privacy policy</a>
+                <a href="#">Terms of use</a>
+                <a href="#">Contact</a>
+                <a href="#">Documentation</a>
+            </div>
+        </footer>
+    </main>
+
+    <script src="../auth.js"></script>
+    <script src="workflow.js"></script>
+</body>
+</html>

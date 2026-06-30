@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="How RAIEC works — an animated walkthrough of the Railway Automated Intelligent Estimate Checker pipeline.">
+    <title>RAIEC — How It Works (Guide)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #07071a;
+            --panel: rgba(18, 22, 43, 0.72);
+            --panel-line: rgba(255, 255, 255, 0.08);
+            --text: #e7ecf5;
+            --muted: #93a0b8;
+            --blue: #3b82f6;
+            --cyan: #22d3ee;
+            --purple: #8b5cf6;
+            --green: #34d399;
+            --orange: #f59e0b;
+            --red: #f87171;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ---------- Background ---------- */
+        .g-bg { position: fixed; inset: 0; z-index: -2; overflow: hidden; }
+        .g-bg video { width: 100%; height: 100%; object-fit: cover; opacity: 0.35; }
+        .g-bg-overlay {
+            position: fixed; inset: 0; z-index: -1;
+            background:
+                radial-gradient(1200px 600px at 80% -10%, rgba(59, 130, 246, 0.18), transparent 60%),
+                radial-gradient(900px 500px at 0% 20%, rgba(139, 92, 246, 0.16), transparent 60%),
+                linear-gradient(180deg, rgba(7, 7, 26, 0.6), rgba(7, 7, 26, 0.95));
+        }
+
+        /* ---------- Navbar ---------- */
+        .g-nav {
+            position: sticky; top: 0; z-index: 50;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 5vw;
+            background: rgba(8, 8, 24, 0.78);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--panel-line);
+        }
+        .g-nav-left { display: flex; align-items: center; gap: 12px; }
+        .g-nav-left img { width: 38px; height: 38px; border-radius: 50%; }
+        .g-brand { font-weight: 800; letter-spacing: 0.5px; color: #fff; text-decoration: none; font-size: 20px; }
+        .g-nav-menu { display: flex; gap: 28px; list-style: none; }
+        .g-nav-menu a { color: var(--muted); text-decoration: none; font-weight: 600; font-size: 14px; transition: color .2s; }
+        .g-nav-menu a:hover { color: #fff; }
+        .g-nav-menu a.active { color: #fff; }
+        .g-nav-menu a.active::after {
+            content: ''; display: block; height: 2px; margin-top: 4px; border-radius: 2px;
+            background: linear-gradient(90deg, var(--blue), var(--cyan));
+        }
+        .g-avatar {
+            width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+            font-weight: 700; color: #fff;
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+        }
+
+        /* ---------- Hero ---------- */
+        .g-hero { text-align: center; padding: 90px 5vw 40px; }
+        .g-eyebrow {
+            display: inline-block; font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+            color: var(--cyan); font-weight: 700; margin-bottom: 16px;
+            padding: 6px 14px; border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 999px;
+            background: rgba(34, 211, 238, 0.06);
+        }
+        .g-hero h1 {
+            font-size: clamp(34px, 6vw, 64px); font-weight: 900; line-height: 1.05; letter-spacing: -1px;
+            background: linear-gradient(120deg, #fff 30%, #9ec5ff 60%, #c4b5fd);
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .g-hero p { max-width: 720px; margin: 20px auto 0; color: var(--muted); font-size: clamp(15px, 2vw, 19px); }
+        .g-scroll-hint { margin-top: 36px; color: var(--muted); font-size: 13px; letter-spacing: 1px; }
+        .g-scroll-hint span { display: block; margin: 10px auto 0; width: 22px; height: 36px; border: 2px solid rgba(255,255,255,.25); border-radius: 12px; position: relative; }
+        .g-scroll-hint span::after { content: ''; position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 4px; height: 8px; border-radius: 2px; background: var(--cyan); animation: gWheel 1.6s ease-in-out infinite; }
+        @keyframes gWheel { 0% { opacity: 0; transform: translate(-50%, 0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, 12px); } }
+
+        /* ---------- Section heading ---------- */
+        .g-section { max-width: 1100px; margin: 0 auto; padding: 50px 5vw; }
+        .g-section-title { text-align: center; font-size: clamp(24px, 3.5vw, 36px); font-weight: 800; margin-bottom: 8px; }
+        .g-section-sub { text-align: center; color: var(--muted); max-width: 640px; margin: 0 auto 48px; }
+
+        /* ---------- Roadmap / Timeline ---------- */
+        .g-roadmap { position: relative; padding: 10px 0; }
+        .g-line {
+            position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+            width: 3px; height: 100%; border-radius: 3px; overflow: hidden;
+            background: rgba(255, 255, 255, 0.07);
+        }
+        .g-line::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(180deg, var(--blue), var(--cyan), var(--purple), var(--green));
+            transform: scaleY(var(--draw, 0)); transform-origin: top;
+            transition: transform .2s linear;
+        }
+        .g-stage { position: relative; display: flex; width: 100%; margin: 34px 0; }
+        .g-stage:nth-child(even) { flex-direction: row-reverse; }
+        .g-stage-half { width: 50%; padding: 0 46px; }
+        .g-card {
+            background: var(--panel); border: 1px solid var(--panel-line); border-radius: 18px;
+            padding: 22px 24px; backdrop-filter: blur(8px);
+            opacity: 0; transform: translateY(28px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);
+        }
+        .g-stage:nth-child(even) .g-card { transform: translateY(28px) translateX(0); }
+        .g-card.in { opacity: 1; transform: translateY(0); }
+        .g-card-tag {
+            display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+            padding: 4px 10px; border-radius: 999px; margin-bottom: 12px;
+        }
+        .g-card h3 { font-size: 19px; font-weight: 700; margin-bottom: 8px; }
+        .g-card p { color: var(--muted); font-size: 14.5px; }
+        .g-node {
+            position: absolute; left: 50%; top: 22px; transform: translateX(-50%);
+            width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
+            background: #0c1228; border: 2px solid var(--panel-line); z-index: 2;
+            box-shadow: 0 0 0 6px rgba(7, 7, 26, 0.9);
+        }
+        .g-node svg { width: 26px; height: 26px; }
+        .g-node-num {
+            position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%;
+            font-size: 11px; font-weight: 800; display: grid; place-items: center; color: #06121f;
+        }
+
+        /* accent helpers */
+        .acc-blue { --c: var(--blue); }
+        .acc-cyan { --c: var(--cyan); }
+        .acc-purple { --c: var(--purple); }
+        .acc-green { --c: var(--green); }
+        .acc-orange { --c: var(--orange); }
+        .acc-red { --c: var(--red); }
+        .g-stage .g-node { border-color: var(--c); box-shadow: 0 0 18px -2px var(--c), 0 0 0 6px rgba(7,7,26,.9); }
+        .g-stage .g-node svg { color: var(--c); }
+        .g-node-num { background: var(--c); }
+        .g-card-tag { color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); }
+        .g-card { border-top: 2px solid color-mix(in srgb, var(--c) 45%, transparent); }
+
+        /* ---------- Matching engine explainer ---------- */
+        .g-flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        .g-flow-card {
+            background: var(--panel); border: 1px solid var(--panel-line); border-radius: 16px; padding: 22px;
+            position: relative; opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease;
+        }
+        .g-flow-card.in { opacity: 1; transform: translateY(0); }
+        .g-flow-card .g-step-dot {
+            width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; color: #06121f;
+            background: var(--c); margin-bottom: 14px;
+        }
+        .g-flow-card h4 { font-size: 16px; margin-bottom: 6px; }
+        .g-flow-card p { color: var(--muted); font-size: 14px; }
+        .g-flow-arrow { display: grid; place-items: center; color: var(--muted); }
+
+        /* ---------- Verdict legend ---------- */
+        .g-verdict { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 28px; }
+        .g-chip { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 12px; background: var(--panel); border: 1px solid var(--panel-line); font-weight: 600; font-size: 14px; }
+        .g-chip b { font-weight: 800; }
+        .g-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+        /* ---------- Feedback loop ---------- */
+        .g-loop {
+            text-align: center; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 20px; padding: 40px 30px;
+            position: relative; overflow: hidden;
+        }
+        .g-loop::before {
+            content: ''; position: absolute; inset: -2px; border-radius: 20px; padding: 2px;
+            background: conic-gradient(from 0deg, var(--blue), var(--cyan), var(--green), var(--purple), var(--blue));
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor; mask-composite: exclude;
+            opacity: .5; animation: gSpin 8s linear infinite;
+        }
+        @keyframes gSpin { to { transform: rotate(360deg); } }
+        .g-loop h3 { font-size: 22px; margin-bottom: 10px; }
+        .g-loop p { color: var(--muted); max-width: 620px; margin: 0 auto; }
+
+        /* ---------- CTA ---------- */
+        .g-cta { text-align: center; padding: 60px 5vw 100px; }
+        .g-cta a {
+            display: inline-block; margin: 8px; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none; transition: transform .2s, box-shadow .2s;
+        }
+        .g-btn-primary { color: #fff; background: linear-gradient(135deg, var(--blue), var(--purple)); }
+        .g-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px -8px rgba(59,130,246,.6); }
+        .g-btn-ghost { color: #fff; border: 1px solid var(--panel-line); }
+        .g-btn-ghost:hover { border-color: var(--cyan); }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 760px) {
+            .g-nav-menu { display: none; }
+            .g-line { left: 26px; }
+            .g-stage, .g-stage:nth-child(even) { flex-direction: column; }
+            .g-stage-half { width: 100%; padding: 0 0 0 64px; }
+            .g-stage-spacer { display: none; }
+            .g-node { left: 26px; }
+            .g-flow { grid-template-columns: 1fr; }
+            .g-flow-arrow { transform: rotate(90deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .g-card, .g-flow-card { opacity: 1 !important; transform: none !important; }
+            .g-loop::before, .g-scroll-hint span::after { animation: none; }
+            html { scroll-behavior: auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="g-bg" aria-hidden="true">
+        <video autoplay muted loop playsinline>
+            <source src="videos/bg animation.mp4" type="video/mp4">
+        </video>
+    </div>
+    <div class="g-bg-overlay" aria-hidden="true"></div>
+
+    <!-- Navbar -->
+    <nav class="g-nav">
+        <div class="g-nav-left">
+            <a href="index.html" style="display:flex"><img src="videos/logo.webp" alt="RAIEC"></a>
+            <a href="index.html" class="g-brand">RAIEC</a>
+        </div>
+        <ul class="g-nav-menu">
+            <li><a href="upload/step1-upload.html">Upload Estimate</a></li>
+            <li><a href="tender-dashboard.html">Dashboard</a></li>
+            <li><a href="lar-intelligence.html">LAR Dataset</a></li>
+            <li><a href="guide.html" class="active">Guide</a></li>
+        </ul>
+        <div class="g-avatar">G</div>
+    </nav>
+
+    <!-- Hero -->
+    <header class="g-hero">
+        <span class="g-eyebrow">How it works</span>
+        <h1>From tender PDF to<br>a defensible verdict.</h1>
+        <p>RAIEC reads a construction tender estimate, structures every line item, checks each rate against the official schedules and past accepted rates, and hands an officer a clear, evidence-backed decision — and every approval makes the next check smarter.</p>
+        <div class="g-scroll-hint">SCROLL TO EXPLORE<span></span></div>
+    </header>
+
+    <!-- Pipeline roadmap -->
+    <section class="g-section">
+        <h2 class="g-section-title">The estimate-checking pipeline</h2>
+        <p class="g-section-sub">Six stages turn a raw PDF into a reviewed decision. Follow the line.</p>
+
+        <div class="g-roadmap" id="roadmap">
+            <div class="g-line" id="roadmapLine"></div>
+
+            <!-- 1 -->
+            <div class="g-stage acc-blue">
+                <div class="g-stage-half"><div class="g-card">
+                    <span class="g-card-tag">PDF ingestion</span>
+                    <h3>1 · Upload the estimate</h3>
+                    <p>Drop the IREPS tender PDF (native or scanned). RAIEC records the NIT header — tender number, name of work, zone, advertised value and closing date.</p>
+                </div></div>
+                <div class="g-node">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span class="g-node-num">1</span>
+                </div>
+                <div class="g-stage-half g-stage-spacer"></div>
+            </div>
+
+            <!-- 2 -->
+            <div class="g-stage acc-cyan">
+                <div class="g-stage-half"><div class="g-card">
+                    <span class="g-card-tag">Structured parsing</span>
+                    <h3>2 · Extract &amp; structure</h3>
+                    <p>Schedules (A / B / C / D), their line items, rate breakups and Non-Scheduled (NS) items are parsed automatically into clean, queryable data — no manual typing.</p>
+                </div></div>
+                <div class="g-node">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+                    <span class="g-node-num">2</span>
+                </div>
+                <div class="g-stage-half g-stage-spacer"></div>
+            </div>
+
+            <!-- 3 -->
+            <div class="g-stage acc-purple">
+                <div class="g-stage-half"><div class="g-card">
+                    <span class="g-card-tag">Code + fuzzy match</span>
+                    <h3>3 · Rate matching</h3>
+                    <p>Each item is matched to its reference: <b>CPWD DSR</b> &amp; <b>IRUSSOR</b> by item code, with a fuzzy description fallback; <b>NS</b> items are matched against the <b>LAR</b> dataset of previously accepted rates.</p>
+                </div></div>
+                <div class="g-node">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                    <span class="g-node-num">3</span>
+                </div>
+                <div class="g-stage-half g-stage-spacer"></div>
+            </div>
+
+            <!-- 4 -->
+            <div class="g-stage acc-orange">
+                <div class="g-stage-half"><div class="g-card">
+                    <span class="g-card-tag">Directional thresholds</span>
+                    <h3>4 · Variance &amp; verdict</h3>
+                    <p>Quoted rate vs reference, judged by direction: at or below the reference is fine (cheaper is good). Only over-quoting is flagged — <b>OK</b>, <b>WARN</b> (5–10% over) or <b>FAIL</b> (&gt;10% over).</p>
+                </div></div>
+                <div class="g-node">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+                    <span class="g-node-num">4</span>
+                </div>
+                <div class="g-stage-half g-stage-spacer"></div>
+            </div>
+
+            <!-- 5 -->
+            <div class="g-stage acc-blue">
+                <div class="g-stage-half"><div class="g-card">
+                    <span class="g-card-tag">Automated checks</span>
+                    <h3>5 · AI analysis</h3>
+                    <p>Rule-based problem-statement checks run over the whole estimate: rate deviation, missing references, math verification and duplicate-proposal detection — each summarised with the items that triggered it.</p>
+                </div></div>
+                <div class="g-node">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6M9 13h4"/><circle cx="12" cy="2" r="1"/></svg>
+                    <span class="g-node-num">5</span>
+                </div>
+                <div class="g-stage-half g-stage-spacer"></div>
+            </div>
+
+            <!-- 6 -->
+            <div class="g-stage acc-green">
+                <div class="g-stage-half"><div class="g-card">
+                    <span class="g-card-tag">Human-in-the-loop</span>
+                    <h3>6 · Officer review</h3>
+                    <p>An officer sees the full picture and approves or rejects. On approval, the estimate's accepted Non-Scheduled rates flow into the LAR dataset — keeping the lowest rate per item.</p>
+                </div></div>
+                <div class="g-node">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                    <span class="g-node-num">6</span>
+                </div>
+                <div class="g-stage-half g-stage-spacer"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Matching engine explainer -->
+    <section class="g-section">
+        <h2 class="g-section-title">Inside the matching engine</h2>
+        <p class="g-section-sub">Maximum accuracy comes from trying the most precise match first, then falling back intelligently.</p>
+        <div class="g-flow">
+            <div class="g-flow-card acc-blue">
+                <div class="g-step-dot">1</div>
+                <h4>Exact item code</h4>
+                <p>DSR / IRUSSOR items are matched by their published code (e.g. <b>4.1.4</b>) for the right edition — the most reliable link.</p>
+            </div>
+            <div class="g-flow-arrow"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+            <div class="g-flow-card acc-purple">
+                <div class="g-step-dot">2</div>
+                <h4>Fuzzy description</h4>
+                <p>If the code isn't found, a trigram-similarity search finds the closest description in the book and shows a <b>confidence %</b>.</p>
+            </div>
+        </div>
+        <div class="g-flow" style="margin-top:18px;">
+            <div class="g-flow-card acc-cyan">
+                <div class="g-step-dot">3</div>
+                <h4>LAR for NS items</h4>
+                <p>Non-Scheduled items have no rate book, so they're matched against the <b>Last Accepted Rate</b> dataset — excluding the tender's own past records.</p>
+            </div>
+            <div class="g-flow-arrow"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+            <div class="g-flow-card acc-green">
+                <div class="g-step-dot">✓</div>
+                <h4>Verdict</h4>
+                <p>The matched reference drives the directional variance and the OK / WARN / FAIL status the officer reviews.</p>
+            </div>
+        </div>
+
+        <div class="g-verdict">
+            <div class="g-chip"><span class="g-dot" style="background:var(--green)"></span> <b>OK</b> — at or below reference (≤5% over)</div>
+            <div class="g-chip"><span class="g-dot" style="background:var(--orange)"></span> <b>WARN</b> — 5–10% over</div>
+            <div class="g-chip"><span class="g-dot" style="background:var(--red)"></span> <b>FAIL</b> — more than 10% over</div>
+        </div>
+    </section>
+
+    <!-- Feedback loop -->
+    <section class="g-section">
+        <div class="g-loop">
+            <h3>It gets smarter with every approval</h3>
+            <p>Each approved tender adds its Non-Scheduled rates to the LAR dataset. The next estimate is checked against a richer, real history of accepted rates — so coverage and accuracy compound over time.</p>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="g-cta">
+        <h2 class="g-section-title" style="margin-bottom:18px;">Ready to check an estimate?</h2>
+        <a href="upload/step1-upload.html" class="g-btn-primary">Upload an estimate</a>
+        <a href="tender-dashboard.html" class="g-btn-ghost">Open the dashboard</a>
+    </section>
+
+    <script src="auth.js"></script>
+    <script>
+        (function () {
+            var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            // Reveal cards on scroll
+            var cards = document.querySelectorAll('.g-card, .g-flow-card');
+            if (reduce) {
+                cards.forEach(function (c) { c.classList.add('in'); });
+            } else {
+                var io = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (e) {
+                        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+                    });
+                }, { threshold: 0.2, rootMargin: '0px 0px -60px 0px' });
+                cards.forEach(function (c) { io.observe(c); });
+            }
+
+            // Draw the roadmap line in proportion to scroll progress through the roadmap.
+            var roadmap = document.getElementById('roadmap');
+            var line = document.getElementById('roadmapLine');
+            if (roadmap && line && !reduce) {
+                var tick = function () {
+                    var rect = roadmap.getBoundingClientRect();
+                    var vh = window.innerHeight;
+                    var total = rect.height + vh * 0.4;
+                    var progressed = Math.min(Math.max(vh * 0.6 - rect.top, 0), total);
+                    line.style.setProperty('--draw', Math.min(progressed / total, 1).toFixed(3));
+                };
+                window.addEventListener('scroll', tick, { passive: true });
+                window.addEventListener('resize', tick);
+                tick();
+            } else if (line) {
+                line.style.setProperty('--draw', 1);
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+# ===== RAIEC .gitignore =====
+
+# --- Build output ---
+backend/target/
+target/
+*.class
+*.jar
+*.war
+!**/.mvn/wrapper/maven-wrapper.jar
+
+# --- Large / licensed data (share via zip, not Git) ---
+rate-books/
+sample-tenders/
+
+# --- Large unused media (too big for GitHub; kept on disk / in the zip) ---
+videos/Banner video.mp4
+videos/train hd.mp4
+videos/train 1.mov
+videos/train 2.mp4
+videos/train 3.mp4
+
+# --- Local helper / generated files ---
+backend/login.json
+login.json
+*.log
+
+# --- Secrets / local env (do NOT commit) ---
+.env
+*.env
+application-local.properties
+
+# --- IDE / editor ---
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+.apt_generated/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Node (if any frontend tooling is added later) ---
+node_modules/

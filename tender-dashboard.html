@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RAIEC Tender Management Dashboard - Search, manage and analyze railway tenders efficiently.">
+    <title>Tender Management Dashboard – RAIEC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tender-dashboard.css">
+</head>
+<body>
+    <!-- Background -->
+    <div class="video-bg-wrapper" aria-hidden="true">
+        <video class="video-bg" autoplay muted loop playsinline>
+            <source src="videos/bg animation.mp4" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+    </div>
+    <div class="bg-streaks" aria-hidden="true">
+        <div class="streak streak-1"></div>
+        <div class="streak streak-2"></div>
+        <div class="streak streak-3"></div>
+        <div class="streak streak-4"></div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="td-navbar">
+        <div class="td-nav-container">
+            <div class="td-nav-left">
+                <a href="index.html" style="display:flex"><img src="videos/logo.webp" alt="RAIEC" class="td-nav-logo-img"></a>
+                <a href="index.html" class="td-nav-brand">RAIEC</a>
+            </div>
+            <ul class="td-nav-menu">
+                <li><a href="upload/step1-upload.html">Upload Estimate</a></li>
+                <li><a href="tender-dashboard.html" class="active">Dashboard</a></li>
+                <li><a href="lar-intelligence.html">LAR Dataset</a></li>
+                <li><a href="guide.html">Guide</a></li>
+            </ul>
+            <div class="td-nav-right">
+                <div class="td-avatar">G</div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="td-page">
+        <!-- Breadcrumb -->
+        <div class="td-breadcrumb">
+            <a href="index.html">Homepage</a> / <span class="current">Tender Management</span>
+        </div>
+
+        <!-- Page Header -->
+        <h1 class="td-page-title">Tender Management Dashboard</h1>
+        <p class="td-page-subtitle">Search, manage and analyze railway tenders efficiently.</p>
+
+        <!-- Search & Filter Panel -->
+        <section class="td-card td-reveal" aria-label="Search and filter tenders">
+            <div class="td-card-header">
+                <h2 class="td-card-title">Search &amp; Filter Tenders</h2>
+                <span class="td-card-meta">6 Filters Available</span>
+            </div>
+
+            <!-- Row 1 -->
+            <div class="td-filter-grid">
+                <div class="td-field">
+                    <label class="td-field-label">Tender Number</label>
+                    <input class="td-input" id="filterNo" type="text" placeholder="e.g. NWR/JP/2026/0417">
+                </div>
+                <div class="td-field">
+                    <label class="td-field-label">Tender Title</label>
+                    <input class="td-input" id="filterTitle" type="text" placeholder="Search by title keyword">
+                </div>
+                <div class="td-field">
+                    <label class="td-field-label">Organization</label>
+                    <input class="td-input" type="text" value="North Western Railway" readonly>
+                </div>
+                <div class="td-field">
+                    <label class="td-field-label">Railway Zone</label>
+                    <select class="td-select" id="filterZone">
+                        <option>Jaipur</option>
+                        <option>Jodhpur</option>
+                        <option>Bikaner</option>
+                        <option>Ajmer</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 2 -->
+            <div class="td-filter-grid">
+                <div class="td-field">
+                    <label class="td-field-label">Department</label>
+                    <input class="td-input" type="text" value="Civil &amp; Construction" readonly>
+                </div>
+                <div class="td-field">
+                    <label class="td-field-label">Tender Status</label>
+                    <select class="td-select" id="filterStatus">
+                        <option>All Statuses</option>
+                        <option>Open</option>
+                        <option>Under Evaluation</option>
+                        <option>Officer Review</option>
+                        <option>Finalized</option>
+                        <option>Closed</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Filter Actions -->
+            <div class="td-filter-actions">
+                <div class="td-filter-actions-left">
+                    <button class="td-btn td-btn-primary" type="button" id="searchTenderBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                        Search Tender
+                    </button>
+                    <button class="td-btn td-btn-outline" type="button" id="resetFilters">Reset Filters</button>
+                </div>
+                <button class="td-btn td-btn-cyan" type="button" id="exportResultsBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export Results
+                </button>
+            </div>
+        </section>
+
+        <!-- Statistics Cards -->
+        <section class="td-stats-row" aria-label="Tender statistics">
+            <div class="td-stat-card td-reveal">
+                <div>
+                    <div class="td-stat-label">Total Tenders Found</div>
+                    <div class="td-stat-value" id="statTotal" data-count="0">—</div>
+                </div>
+                <div class="td-stat-icon td-icon-blue">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 13h4"/></svg>
+                </div>
+            </div>
+            <div class="td-stat-card td-reveal">
+                <div>
+                    <div class="td-stat-label">Active Tenders</div>
+                    <div class="td-stat-value" id="statActive" data-count="0">—</div>
+                </div>
+                <div class="td-stat-icon td-icon-green">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5"/></svg>
+                </div>
+            </div>
+            <div class="td-stat-card td-reveal">
+                <div>
+                    <div class="td-stat-label">Finalized Tenders</div>
+                    <div class="td-stat-value" id="statFinalized" data-count="0">—</div>
+                </div>
+                <div class="td-stat-icon td-icon-purple">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+                </div>
+            </div>
+            <div class="td-stat-card td-reveal">
+                <div>
+                    <div class="td-stat-label">Under Review</div>
+                    <div class="td-stat-value" id="statUnderReview" data-count="0">—</div>
+                </div>
+                <div class="td-stat-icon td-icon-yellow">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                </div>
+            </div>
+            <div class="td-stat-card td-reveal">
+                <div>
+                    <div class="td-stat-label">Closed Tenders</div>
+                    <div class="td-stat-value" id="statClosed" data-count="0">—</div>
+                </div>
+                <div class="td-stat-icon td-icon-gray">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tender Results Table -->
+        <section class="td-card td-reveal" aria-label="Tender results">
+            <div class="td-card-header">
+                <h2 class="td-card-title">Tender Results</h2>
+                <span class="td-card-meta" id="tenderResultsMeta">Showing 7 of 128 Results</span>
+            </div>
+            <div class="td-table-wrap">
+                <table class="td-table">
+                    <thead>
+                        <tr>
+                            <th>Tender No</th>
+                            <th>Tender Title</th>
+                            <th>Est. Cost (₹)</th>
+                            <th>Status</th>
+                            <th>Closing Date</th>
+                            <th>Due</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tenderResultsBody">
+                        <tr>
+                            <td class="td-tender-no">NWR/JP/2026/0417</td>
+                            <td class="td-tender-title">Provision of Platform Shelters</td>
+                            <td class="td-cost">1.84 Cr</td>
+                            <td><span class="td-pill td-pill-open">Open</span></td>
+                            <td>28 Jun 2026</td>
+                            <td class="td-due-soon">6 Days</td>
+                            <td>
+                                <div class="td-row-actions">
+                                    <button class="td-action-btn" data-tooltip="View Tender" aria-label="View Tender"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Scan / Upload Estimate" aria-label="Scan / Upload Estimate" onclick="window.location.href='upload/step1-upload.html'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="td-tender-no">NWR/JP/2026/0405</td>
+                            <td class="td-tender-title">Track Renewal Work</td>
+                            <td class="td-cost">6.42 Cr</td>
+                            <td><span class="td-pill td-pill-eval">Under Evaluation</span></td>
+                            <td>22 Jun 2026</td>
+                            <td class="td-due-urgent">0 Days</td>
+                            <td>
+                                <div class="td-row-actions">
+                                    <button class="td-action-btn" data-tooltip="View Tender" aria-label="View Tender"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Scan / Upload Estimate" aria-label="Scan / Upload Estimate" onclick="window.location.href='upload/step1-upload.html'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="td-tender-no">NWR/JP/2026/0398</td>
+                            <td class="td-tender-title">Signal &amp; Telecommunication Work</td>
+                            <td class="td-cost">3.10 Cr</td>
+                            <td><span class="td-pill td-pill-review">Officer Review</span></td>
+                            <td>—</td>
+                            <td class="td-due-ok">Closed</td>
+                            <td>
+                                <div class="td-row-actions">
+                                    <button class="td-action-btn" data-tooltip="View Tender" aria-label="View Tender"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Scan / Upload Estimate" aria-label="Scan / Upload Estimate" onclick="window.location.href='upload/step1-upload.html'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="td-tender-no">NWR/JP/2026/0392</td>
+                            <td class="td-tender-title">Construction of Foot Over Bridge</td>
+                            <td class="td-cost">4.25 Cr</td>
+                            <td><span class="td-pill td-pill-final">Finalized</span></td>
+                            <td>—</td>
+                            <td class="td-due-ok">—</td>
+                            <td>
+                                <div class="td-row-actions">
+                                    <button class="td-action-btn" data-tooltip="View Tender" aria-label="View Tender"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Scan / Upload Estimate" aria-label="Scan / Upload Estimate" onclick="window.location.href='upload/step1-upload.html'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="td-tender-no">NWR/JP/2026/0385</td>
+                            <td class="td-tender-title">Water Supply Scheme</td>
+                            <td class="td-cost">2.05 Cr</td>
+                            <td><span class="td-pill td-pill-closed">Closed</span></td>
+                            <td>—</td>
+                            <td class="td-due-ok">Closed</td>
+                            <td>
+                                <div class="td-row-actions">
+                                    <button class="td-action-btn" data-tooltip="View Tender" aria-label="View Tender"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Scan / Upload Estimate" aria-label="Scan / Upload Estimate" onclick="window.location.href='upload/step1-upload.html'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="td-tender-no">NWR/JP/2026/0376</td>
+                            <td class="td-tender-title">Station Redevelopment Phase II</td>
+                            <td class="td-cost">18.60 Cr</td>
+                            <td><span class="td-pill td-pill-open">Open</span></td>
+                            <td>30 Jun 2026</td>
+                            <td class="td-due-ok">8 Days</td>
+                            <td>
+                                <div class="td-row-actions">
+                                    <button class="td-action-btn" data-tooltip="View Tender" aria-label="View Tender"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Scan / Upload Estimate" aria-label="Scan / Upload Estimate" onclick="window.location.href='upload/step1-upload.html'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="td-tender-no">NWR/BKN/2026/0369</td>
+                            <td class="td-tender-title">Provision of Platform Shelters — Bikaner</td>
+                            <td class="td-cost">1.42 Cr</td>
+                            <td><span class="td-pill td-pill-eval">Under Evaluation</span></td>
+                            <td>24 Jun 2026</td>
+                            <td class="td-due-urgent">2 Days</td>
+                            <td>
+                                <div class="td-row-actions">
+                                    <button class="td-action-btn" data-tooltip="View Tender" aria-label="View Tender"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                    <button class="td-action-btn" data-tooltip="Scan / Upload Estimate" aria-label="Scan / Upload Estimate" onclick="window.location.href='upload/step1-upload.html'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="td-pagination">
+                <button class="td-page-btn">Previous</button>
+                <button class="td-page-btn active">1</button>
+                <button class="td-page-btn">2</button>
+                <button class="td-page-btn">3</button>
+                <span class="td-page-dots">...</span>
+                <button class="td-page-btn">19</button>
+                <button class="td-page-btn">Next</button>
+            </div>
+        </section>
+
+        <!-- Recent Tender Notifications -->
+        <section class="td-card td-notif-section td-reveal" aria-label="Recent tender notifications">
+            <div class="td-card-header">
+                <h2 class="td-card-title">Recent Tender Notifications</h2>
+                <span class="td-card-meta">Last 5 Updates</span>
+            </div>
+            <div class="td-notif-list" id="recentNotifList">
+                <div class="td-notif-item">
+                    <div class="td-notif-icon td-icon-green">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5"/></svg>
+                    </div>
+                    <div class="td-notif-content">
+                        <div class="td-notif-title">Tender NWR/JP/2025/0341 Approved</div>
+                        <div class="td-notif-sub">Approval finalized by procurement officer</div>
+                    </div>
+                    <div class="td-notif-time">2 Hours Ago</div>
+                </div>
+                <div class="td-notif-item">
+                    <div class="td-notif-icon td-icon-blue">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div class="td-notif-content">
+                        <div class="td-notif-title">New Tender NWR/JP/2026/0417 Uploaded</div>
+                        <div class="td-notif-sub">Awaiting OCR extraction</div>
+                    </div>
+                    <div class="td-notif-time">5 Hours Ago</div>
+                </div>
+                <div class="td-notif-item">
+                    <div class="td-notif-icon td-icon-gray">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                    </div>
+                    <div class="td-notif-content">
+                        <div class="td-notif-title">Tender NWR/AII/2025/0298 Closed</div>
+                        <div class="td-notif-sub">Bidding window ended</div>
+                    </div>
+                    <div class="td-notif-time">1 Day Ago</div>
+                </div>
+                <div class="td-notif-item">
+                    <div class="td-notif-icon td-icon-purple">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                    </div>
+                    <div class="td-notif-content">
+                        <div class="td-notif-title">Rate Analysis Completed</div>
+                        <div class="td-notif-sub">NWR/JP/2026/0405</div>
+                    </div>
+                    <div class="td-notif-time">1 Day Ago</div>
+                </div>
+                <div class="td-notif-item">
+                    <div class="td-notif-icon td-icon-yellow">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div class="td-notif-content">
+                        <div class="td-notif-title">Document Updated</div>
+                        <div class="td-notif-sub">NWR/JP/2026/0289</div>
+                    </div>
+                    <div class="td-notif-time">2 Days Ago</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="auth.js"></script>
+    <script src="tender-dashboard.js"></script>
+</body>
+</html>
