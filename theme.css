@@ -693,22 +693,19 @@ html.modal-open *:not(.raiec-loader):not(.raiec-loader *):not(.login-modal):not(
 :root[data-theme="light"] .td-select,
 :root[data-theme="light"] .wf-form-input,
 :root[data-theme="light"] .wf-textarea,
-:root[data-theme="light"] .login-input,
-:root[data-theme="light"] .search-input {
+:root[data-theme="light"] .login-input {
     background: #ffffff;
     border: 1px solid var(--border-color);
     color: var(--text-primary);
 }
 
 :root[data-theme="light"] .td-input::placeholder,
-:root[data-theme="light"] .search-input::placeholder,
 :root[data-theme="light"] .wf-form-input::placeholder {
     color: var(--text-muted);
 }
 
 :root[data-theme="light"] .td-input:focus,
-:root[data-theme="light"] .td-select:focus,
-:root[data-theme="light"] .search-input:focus {
+:root[data-theme="light"] .td-select:focus {
     border-color: var(--accent-blue);
     box-shadow: 0 0 0 3px var(--tint-blue);
     outline: none;

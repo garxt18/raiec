@@ -568,3 +568,17 @@ function openTender(id) {
         openLoginModal();
     }
 })();
+
+
+// The search pill reads as one control, so clicking anywhere in it — the icon, the
+// padding, the empty space — focuses the field. (tender-search-box click-to-focus)
+(function () {
+    var box = document.querySelector('.tender-search-box');
+    var input = document.getElementById('homeSearchInput');
+    if (!box || !input) return;
+    box.addEventListener('mousedown', function (e) {
+        if (e.target.closest('button')) return;   // let the button be a button
+        e.preventDefault();
+        input.focus();
+    });
+})();

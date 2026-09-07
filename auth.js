@@ -79,7 +79,7 @@
         var role = (get(K.role) || '').toLowerCase();
         var initial = name ? name.charAt(0).toUpperCase() : 'G';
 
-        var avatars = document.querySelectorAll('.td-avatar, .g-avatar');
+        var avatars = document.querySelectorAll('.td-avatar, .g-avatar, .wf-avatar, .user-avatar');
         avatars.forEach(function (el) { el.textContent = initial; });
 
         if (loggedIn && avatars.length) {

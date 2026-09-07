@@ -155,10 +155,7 @@ body {
     width: 100%;
     height: var(--nav-height);
     z-index: 1000;
-    background: rgba(10, 10, 26, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+    /* Colour and blur come from the shared nav tokens in theme.css. */
     transition: background 0.4s ease, box-shadow 0.4s ease;
 }
 
@@ -1779,8 +1776,9 @@ html.modal-open *:not(.login-modal):not(.login-modal *) {
     position: relative;
     z-index: 1;
     padding: 80px 5vw 100px;
-    border-top: 1px solid var(--border-subtle);
-    background: var(--panel-30);
+    /* No band and no rule above it: the section should read as part of the same
+       continuous page, not a panel bolted onto the end. */
+    background: transparent;
 }
 
 .nwr-inner {
@@ -1793,6 +1791,7 @@ html.modal-open *:not(.login-modal):not(.login-modal *) {
 }
 
 .nwr-media {
+    order: 2;
     border-radius: var(--radius-lg);
     overflow: hidden;
     border: 1px solid var(--border-subtle);
@@ -1810,6 +1809,8 @@ html.modal-open *:not(.login-modal):not(.login-modal *) {
 }
 
 .nwr-media:hover img { transform: scale(1.04); }
+
+.nwr-copy { order: 1; }
 
 .nwr-eyebrow {
     display: inline-block;
@@ -1922,4 +1923,73 @@ html.modal-open *:not(.login-modal):not(.login-modal *) {
     display: inline-block;
     text-align: left;
     border-left: 2px solid var(--accent-blue);
+}
+
+/* ===== Tender search bar =====
+   The whole pill is the input. Clicking anywhere on it focuses the field, the
+   field itself carries no box of its own, and the bar is tall enough to read as
+   the page's primary action. */
+.tender-search-box {
+    cursor: text;
+    min-height: 68px;
+    padding: 0 12px 0 26px;
+}
+
+.search-input {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    height: 68px;
+    font-size: 17px;
+    letter-spacing: 0.1px;
+}
+
+.search-input::placeholder {
+    color: var(--text-muted);
+    font-size: 16.5px;
+}
+
+.tender-search-box .search-icon {
+    color: var(--accent-violet);
+    display: flex;
+    flex-shrink: 0;
+}
+
+/* The button should not be clipped by the pill's rounded ends. */
+.btn-check-status {
+    border-radius: 999px;
+    padding: 13px 26px !important;
+    font-size: 14.5px;
+    font-weight: 600;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.btn-check-status:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 600px) {
+    .tender-search-box { min-height: 60px; padding: 0 10px 0 18px; }
+    .search-input { height: 60px; font-size: 16px; }
+    .btn-check-status { padding: 11px 18px !important; }
+}
+
+/* ===== Continuous page flow =====
+   Sections previously had their own widths and paddings, so the page read as a
+   stack of separate panels rather than one document scrolling past. Even spacing
+   and a shared max width keep it continuous. */
+.about-section,
+.nwr-section,
+.features-section,
+.dashboard-section {
+    background: transparent;
+    border-top: none;
+}
+
+.nwr-section {
+    padding-top: 40px;
 }
