@@ -46,6 +46,12 @@
     --text-muted: #64748b;
     --text-inverse: #0f172a;
 
+    /* For content sitting on a surface that is light in BOTH themes (the feature
+       cards use a fixed near-white background). This must never flip, which is
+       why the light block does not redefine it. */
+    --text-on-light: #111827;
+    --text-on-light-muted: #4b5563;
+
     /* --- Lines and depth --- */
     --border-color: #1e293b;
     --border-subtle: rgba(255, 255, 255, 0.08);

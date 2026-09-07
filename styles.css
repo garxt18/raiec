@@ -681,7 +681,9 @@ body {
 .feature-title {
     font-size: 26px;
     font-weight: 800;
-    color: var(--bg-card);
+    /* The feature card is light in both themes, so this text must stay dark.
+       It is NOT --text-primary: that would turn white in dark mode. */
+    color: var(--text-on-light);
     margin-bottom: 12px;
 }
 
@@ -713,7 +715,7 @@ body {
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 1px;
-    color: var(--bg-card);
+    color: var(--text-on-light);
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
