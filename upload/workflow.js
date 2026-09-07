@@ -103,9 +103,17 @@ function renderStepper() {
 
 document.addEventListener('DOMContentLoaded', renderStepper);
 
-// Navigate between steps
+// Navigate between steps.
+// A hard cut between pages made the flow feel like five separate screens rather than
+// one process. Fading the current page out first, and in on arrival, reads as moving
+// forward through a single document.
 function navigateTo(page) {
-    window.location.href = page;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        window.location.href = page;
+        return;
+    }
+    document.body.classList.add('wf-leaving');
+    setTimeout(function () { window.location.href = page; }, 240);
 }
 
 // Save workflow state
@@ -165,11 +173,19 @@ function handleFiles(files) {
         var sizeEl = preview.querySelector('.wf-file-size');
         if (nameEl) nameEl.textContent = file.name;
         if (sizeEl) sizeEl.textContent = (file.size / (1024 * 1024)).toFixed(1) + ' MB · Ready to submit';
-        // Clear green "ready" state (no misleading fake progress).
+
+        // The bar sat at a green 100% before anything had happened, which claimed
+        // progress that did not exist. The file is simply accepted; the real work is
+        // reported by the scanning overlay once submitted.
         var bar = preview.querySelector('.wf-file-progress-bar');
-        if (bar) { bar.style.width = '100%'; bar.style.background = '#34d399'; }
+        if (bar) { bar.style.width = '100%'; bar.style.background = 'var(--accent-green)'; }
         var icon = preview.querySelector('.wf-file-icon');
-        if (icon) { icon.style.background = 'rgba(52,211,153,0.15)'; icon.style.color = '#34d399'; }
+        if (icon) { icon.style.background = 'var(--tint-green)'; icon.style.color = 'var(--accent-green)'; }
+
+        // Replay the accept animation even when a second file replaces the first.
+        preview.classList.remove('is-accepted');
+        void preview.offsetWidth;
+        preview.classList.add('is-accepted');
     }
     saveState('uploadedFile', { name: file.name, size: file.size });
 }
@@ -750,10 +766,10 @@ function renderThresholds(host, t, isAdmin) {
           (isAdmin ? '<button type="button" class="wf-th-edit" id="wfThEdit">Edit</button>' : '') +
         '</div>' +
         '<dl class="wf-th-list">' +
-          thRow('Acceptable', 'at or below reference, up to +' + fmtPct(t.warnPct) + '%', 'ok') +
+          thRow('Acceptable', '≤ +' + fmtPct(t.warnPct) + '%', 'ok') +
           thRow('Warn', '+' + fmtPct(t.warnPct) + '% to +' + fmtPct(t.failPct) + '%', 'warn') +
-          thRow('Fail', 'above +' + fmtPct(t.failPct) + '%', 'fail') +
-          thRow('LAR valid for', t.larValidityMonths + ' months', 'muted') +
+          thRow('Fail', '> +' + fmtPct(t.failPct) + '%', 'fail') +
+          thRow('LAR valid', t.larValidityMonths + ' months', 'muted') +
         '</dl>' +
         (t.updatedBy ? '<p class="wf-th-meta">Last changed by ' + escapeHtml(t.updatedBy) + '</p>' : '');
 

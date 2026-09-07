@@ -94,6 +94,21 @@
 
     var loaderEl = null;
     var loaderStepTimer = null;
+    var loaderShowTimer = null;
+    var loaderShownAt = 0;
+
+    /**
+     * Wait this long before showing anything. Work that finishes sooner never shows a
+     * loader at all: reading already-extracted items takes ~20ms, and a 20ms overlay is
+     * a flash, which reads as a glitch rather than as progress.
+     */
+    var LOADER_DELAY_MS = 260;
+
+    /**
+     * Once it IS on screen, keep it there this long. Without a floor, an operation that
+     * takes 300ms shows the overlay for 40ms and rips it away again.
+     */
+    var LOADER_MIN_VISIBLE_MS = 620;
 
     function buildLoader() {
         var el = document.createElement('div');
@@ -150,22 +165,43 @@
             stepEl.textContent = '';
         }
 
-        // Same reason as the login modal: blurring moving pixels is expensive.
-        document.documentElement.classList.add('modal-open', 'loader-open');
-        var video = document.querySelector('video.video-bg');
-        if (video) { try { video.pause(); } catch (e) { /* ignore */ } }
+        // Armed, not shown. If the work completes inside LOADER_DELAY_MS the overlay
+        // never appears, so fast operations stay silent instead of strobing.
+        clearTimeout(loaderShowTimer);
+        loaderShownAt = 0;
+        loaderShowTimer = setTimeout(function () {
+            // Same reason as the login modal: blurring moving pixels is expensive.
+            document.documentElement.classList.add('modal-open', 'loader-open');
+            var video = document.querySelector('video.video-bg');
+            if (video) { try { video.pause(); } catch (e) { /* ignore */ } }
 
-        void loaderEl.offsetWidth;
-        loaderEl.classList.add('open');
+            void loaderEl.offsetWidth;
+            loaderEl.classList.add('open');
+            loaderShownAt = Date.now();
+        }, LOADER_DELAY_MS);
     }
 
     function hideLoader() {
-        clearInterval(loaderStepTimer);
-        if (!loaderEl) return;
-        loaderEl.classList.remove('open');
-        document.documentElement.classList.remove('modal-open', 'loader-open');
-        var video = document.querySelector('video.video-bg');
-        if (video) { try { video.play().catch(function () {}); } catch (e) { /* ignore */ } }
+        clearTimeout(loaderShowTimer);
+
+        // Never appeared: nothing to take down, and no flash.
+        if (!loaderShownAt) {
+            clearInterval(loaderStepTimer);
+            return;
+        }
+
+        // On screen already: honour the minimum so it does not blink out.
+        var shownFor = Date.now() - loaderShownAt;
+        var wait = Math.max(0, LOADER_MIN_VISIBLE_MS - shownFor);
+        setTimeout(function () {
+            clearInterval(loaderStepTimer);
+            if (!loaderEl) return;
+            loaderEl.classList.remove('open');
+            document.documentElement.classList.remove('modal-open', 'loader-open');
+            loaderShownAt = 0;
+            var video = document.querySelector('video.video-bg');
+            if (video) { try { video.play().catch(function () {}); } catch (e) { /* ignore */ } }
+        }, wait);
     }
 
     /* ---------------------------------------------------------------------
