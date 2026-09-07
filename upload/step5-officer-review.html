@@ -52,13 +52,7 @@
         <h1 class="wf-page-title">Officer review</h1>
         <p class="wf-page-subtitle">Review the full pipeline output below. All AI flags are advisory — you make the final call on approval.</p>
 
-        <div class="wf-stepper">
-            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">Upload</span><div class="wf-step-line"></div></div>
-            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">OCR extract</span><div class="wf-step-line"></div></div>
-            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">Rate match</span><div class="wf-step-line"></div></div>
-            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">AI analysis</span><div class="wf-step-line"></div></div>
-            <div class="wf-step active"><div class="wf-step-circle">5</div><span class="wf-step-label">Officer review</span></div>
-        </div>
+        <div class="wf-stepper" data-step="5" aria-label="Progress"></div>
 
         <!-- Alert Banner -->
         <div class="wf-alert-banner">
@@ -126,7 +120,7 @@
                 <div class="wf-actions">
                     <button class="wf-btn wf-btn-success" onclick="approveTender()">Approve estimate</button>
                     <button class="wf-btn wf-btn-danger" onclick="rejectTender()">Reject &amp; send back</button>
-                    <button class="wf-btn wf-btn-dark">Request more info</button>
+                    <button class="wf-btn wf-btn-dark" type="button" onclick="requestMoreInfo()">Request more info</button>
                 </div>
                 <div id="reviewMessage" hidden></div>
             </div>

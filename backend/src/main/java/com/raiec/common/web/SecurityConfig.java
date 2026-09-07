@@ -52,6 +52,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/error").permitAll()
                         .requestMatchers("/api/reference/import/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // Anyone signed in may READ the thresholds - the officer needs to see
+                        // what a verdict was measured against - but only an admin may change
+                        // them, since they apply department-wide.
+                        .requestMatchers(HttpMethod.PUT, "/api/settings/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST,
                                 "/api/tenders/*/approve",
                                 "/api/tenders/*/reject",

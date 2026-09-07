@@ -135,3 +135,37 @@ stores a BCrypt hash, never plain text).
 https://raiec.vercel.app/?api=http://localhost:8080/api
 ```
 The value is remembered in `localStorage`. Clear it with `localStorage.removeItem('raiec_api_base')`.
+
+---
+
+## Schema changes and `ddl-auto=update`
+
+The app uses `spring.jpa.hibernate.ddl-auto=update`, which **adds** tables and columns but
+never **alters or drops** anything that already exists. That is fine for new fields and
+caused a real failure once already, so it is worth knowing before the next schema change.
+
+Hibernate maps an enum column with a `CHECK` constraint listing the values it knew about at
+the time the table was created. Adding a value to the enum in Java does **not** widen that
+constraint on an existing database, so every write of the new value fails with:
+
+```
+ERROR: new row for relation "tender" violates check constraint "tender_status_check"
+```
+
+This happened when `INFO_REQUESTED` was added to `TenderStatus`. The fix on an existing
+database is to recreate the constraint with the full list:
+
+```sql
+ALTER TABLE tender DROP CONSTRAINT IF EXISTS tender_status_check;
+ALTER TABLE tender ADD CONSTRAINT tender_status_check
+  CHECK (status IN ('UPLOADED','OCR_EXTRACTED','RATE_MATCHED','AI_ANALYZED',
+                    'OFFICER_REVIEW','INFO_REQUESTED','APPROVED','REJECTED'));
+```
+
+**A fresh deployment is unaffected** — on an empty database Hibernate creates the constraint
+with every current value, so Neon will be correct from the start. Only databases created
+before the change need the statement above.
+
+The durable fix is **Flyway migrations** with `ddl-auto=validate`, which the application
+properties already flag as the intended direction. Until then, treat any change to an enum,
+a column type, or a length as needing a hand-written `ALTER` against existing databases.

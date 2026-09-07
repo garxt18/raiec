@@ -52,13 +52,7 @@
         <h1 class="wf-page-title">Rate matching</h1>
         <p class="wf-page-subtitle">Each line item is checked against USSOR, CPWD DSR, and your Last Accepted Rates. Variance outside tolerance is flagged automatically.</p>
 
-        <div class="wf-stepper">
-            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">Upload</span><div class="wf-step-line"></div></div>
-            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">OCR extract</span><div class="wf-step-line"></div></div>
-            <div class="wf-step active"><div class="wf-step-circle">3</div><span class="wf-step-label">Rate match</span><div class="wf-step-line"></div></div>
-            <div class="wf-step inactive"><div class="wf-step-circle">4</div><span class="wf-step-label">AI analysis</span><div class="wf-step-line"></div></div>
-            <div class="wf-step inactive"><div class="wf-step-circle">5</div><span class="wf-step-label">Officer review</span></div>
-        </div>
+        <div class="wf-stepper" data-step="3" aria-label="Progress"></div>
 
         <div class="wf-summary-row">
             <div class="wf-summary-card"><div class="label">Total items</div><div class="value" id="rmTotal">—</div></div>
@@ -67,6 +61,9 @@
             <div class="wf-summary-card"><div class="label">FAIL</div><div class="value red" id="rmFail">—</div></div>
         </div>
         <p id="rmNoRefNote" hidden style="margin-top:12px;font-size:14px;"></p>
+
+        <!-- What the verdicts below were measured against. -->
+        <aside class="wf-thresholds" id="wfThresholds" aria-label="Benchmark thresholds"></aside>
 
         <div class="wf-section-header">
             <div>

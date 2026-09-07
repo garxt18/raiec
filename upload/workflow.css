@@ -1005,3 +1005,673 @@ body {
     padding-left: clamp(16px, 3vw, var(--page-pad));
     padding-right: clamp(16px, 3vw, var(--page-pad));
 }
+
+/* =============================================================================
+   Stepper
+   Replaces the old five-circle row. Bigger targets, a rail that fills to show
+   real progress, and completed stages that are genuinely clickable so the
+   officer can go back without using the browser's back button repeatedly.
+   ============================================================================= */
+
+.wf-stepper {
+    --wf-progress: 0%;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    max-width: 860px;
+    margin: 44px auto 52px;
+    padding: 0 8px;
+}
+
+/* The rail sits behind the dots, aligned to their centre line. */
+.wf-stepper::before,
+.wf-stepper::after {
+    content: '';
+    position: absolute;
+    top: 25px;
+    left: 40px;
+    right: 40px;
+    height: 3px;
+    border-radius: 3px;
+}
+
+.wf-stepper::before { background: var(--surface-3); }
+
+.wf-stepper::after {
+    right: auto;
+    width: calc((100% - 80px) * (var(--wf-progress) / 100));
+    background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+    transition: width 620ms var(--ease-out);
+}
+
+.wf-stepp {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    text-decoration: none;
+    text-align: center;
+}
+
+.wf-stepp-dot {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+    font-weight: 700;
+    border: 3px solid var(--bg-primary);
+    background: var(--surface-3);
+    color: var(--text-muted);
+    transition: transform var(--dur-mid) var(--ease-spring),
+                background var(--dur-mid) var(--ease-out),
+                box-shadow var(--dur-mid) var(--ease-out),
+                color var(--dur-mid) var(--ease-out);
+}
+
+.wf-stepp-dot svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.wf-stepp-label {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: color var(--dur-mid) var(--ease-out);
+    white-space: nowrap;
+}
+
+/* Completed */
+.wf-stepp[data-state="done"] .wf-stepp-dot {
+    background: var(--accent-green);
+    color: #fff;
+}
+.wf-stepp[data-state="done"] .wf-stepp-label { color: var(--text-secondary); }
+
+/* Only an <a> is clickable; the div form gets no affordance. */
+a.wf-stepp[data-state="done"] { cursor: pointer; }
+a.wf-stepp[data-state="done"]:hover .wf-stepp-dot {
+    transform: translateY(-3px) scale(1.06);
+    box-shadow: 0 8px 20px -6px var(--accent-green);
+}
+a.wf-stepp[data-state="done"]:hover .wf-stepp-label { color: var(--text-primary); }
+a.wf-stepp:focus-visible .wf-stepp-dot {
+    outline: 3px solid var(--accent-blue);
+    outline-offset: 3px;
+}
+
+/* Current */
+.wf-stepp[data-state="active"] .wf-stepp-dot {
+    background: var(--accent-blue);
+    color: #fff;
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px var(--tint-blue);
+    animation: wf-pulse 2.4s var(--ease-out) infinite;
+}
+.wf-stepp[data-state="active"] .wf-stepp-label {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+@keyframes wf-pulse {
+    0%, 100% { box-shadow: 0 0 0 6px var(--tint-blue); }
+    50%      { box-shadow: 0 0 0 12px transparent; }
+}
+
+/* Upcoming stays visibly out of reach. */
+.wf-stepp[data-state="todo"] .wf-stepp-dot { opacity: 0.65; }
+
+@media (prefers-reduced-motion: reduce) {
+    .wf-stepp[data-state="active"] .wf-stepp-dot { animation: none; }
+    .wf-stepper::after { transition: none; }
+}
+
+@media (max-width: 700px) {
+    .wf-stepper { margin: 30px auto 36px; gap: 2px; }
+    .wf-stepper::before, .wf-stepper::after { top: 20px; left: 30px; right: 30px; }
+    .wf-stepper::after { right: auto; width: calc((100% - 60px) * (var(--wf-progress) / 100)); }
+    .wf-stepp-dot { width: 42px; height: 42px; font-size: 14px; }
+    .wf-stepp-dot svg { width: 19px; height: 19px; }
+    .wf-stepp-label { font-size: 11.5px; }
+}
+
+@media (max-width: 460px) {
+    .wf-stepp-label { display: none; }
+    .wf-stepper { margin-bottom: 26px; }
+}
+
+/* A parsed value is shown as confirmed fact, not an editable guess. */
+.wf-form-input[readonly] {
+    cursor: default;
+    color: var(--text-secondary);
+}
+
+.wf-form-input.is-detected {
+    color: var(--text-primary);
+    font-weight: 600;
+    border-color: var(--accent-green);
+    background: var(--tint-green);
+    animation: wf-detected 600ms var(--ease-out);
+}
+
+@keyframes wf-detected {
+    0%   { transform: scale(0.99); border-color: var(--border-color); }
+    55%  { transform: scale(1.01); }
+    100% { transform: none; }
+}
+
+/* =============================================================================
+   Step 2 — extracted items
+   ============================================================================= */
+
+/* The rate is the figure under scrutiny, so it is set apart from the quantity
+   rather than sitting in the same grey as everything else. */
+.ocr-rate {
+    color: var(--accent-orange-bright);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.ocr-qty {
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Stat tiles: the boxes were large and the numbers small, which is backwards.
+   Tighter padding, much larger figure. */
+.wf-summary-grid {
+    gap: 14px;
+}
+
+.wf-summary-card {
+    padding: 14px 18px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.wf-summary-card .label {
+    font-size: 11.5px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin: 0;
+}
+
+.wf-summary-card .value {
+    font-size: clamp(28px, 3.4vw, 40px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    margin: 0;
+}
+
+/* =============================================================================
+   Step 3 — benchmark panel
+   Sits beside the comparison because a verdict is meaningless without the band
+   it was measured against.
+   ============================================================================= */
+
+.wf-thresholds {
+    /* Floated right of the comparison so it reads as a legend for the table,
+       without competing with the section title for the same row. */
+    float: right;
+    width: 268px;
+    margin: 4px 0 16px 24px;
+    background: var(--panel-60);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+}
+
+.wf-th-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.wf-th-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.wf-th-edit {
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.wf-th-edit:hover { background: var(--surface-3); color: var(--text-primary); }
+
+.wf-th-list { margin: 0; }
+
+.wf-th-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0 5px 10px;
+    border-left: 3px solid transparent;
+}
+
+.wf-th-row dt { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin: 0; }
+.wf-th-row dd { font-size: 12.5px; color: var(--text-muted); margin: 0; text-align: right; }
+
+/* The band colours match the verdict badges in the table below it. */
+.wf-th-row[data-tone="ok"]    { border-left-color: var(--accent-green); }
+.wf-th-row[data-tone="warn"]  { border-left-color: var(--accent-orange); }
+.wf-th-row[data-tone="fail"]  { border-left-color: var(--accent-red); }
+.wf-th-row[data-tone="muted"] { border-left-color: var(--border-strong); }
+
+.wf-th-meta { margin: 8px 0 0; font-size: 11.5px; color: var(--text-muted); }
+.wf-th-err  { font-size: 12.5px; color: var(--text-muted); }
+
+/* ---- editor dialog (reuses the blurred overlay) ---- */
+.wf-th-dialog {
+    width: min(420px, calc(100vw - 40px));
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 24px 26px;
+    box-shadow: var(--shadow-lg);
+}
+
+.wf-th-dialog h3 { margin: 0 0 4px; font-size: 18px; color: var(--text-primary); }
+.wf-th-dialog-sub { margin: 0 0 18px; font-size: 13px; color: var(--text-muted); }
+
+.wf-th-field { display: block; margin-bottom: 14px; }
+.wf-th-field span {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+}
+.wf-th-field input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: inherit;
+}
+.wf-th-field input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px var(--tint-blue);
+}
+
+.wf-th-error {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--accent-red);
+    background: var(--tint-red);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+}
+
+.wf-th-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+
+@media (max-width: 820px) {
+    .wf-thresholds { min-width: 0; width: 100%; }
+}
+
+/* =============================================================================
+   Step 4 — analysis checks
+   The old card was a code, a sentence and a badge, which never said what had
+   actually been examined. Each check now states its finding, what it looked at,
+   and why that matters.
+   ============================================================================= */
+
+.wf-check {
+    position: relative;
+    background: var(--panel-60);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 18px 20px 18px 26px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: wf-check-in 460ms var(--ease-out) forwards;
+    animation-delay: calc(var(--i, 0) * 90ms);
+    transition: border-color var(--dur-mid) var(--ease-out), transform var(--dur-mid) var(--ease-out);
+}
+
+.wf-check:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+}
+
+@keyframes wf-check-in {
+    to { opacity: 1; transform: none; }
+}
+
+/* A colour rail carries the verdict, so severity is readable before any text. */
+.wf-check-rail {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+}
+
+.wf-check[data-tone="pass"] .wf-check-rail { background: var(--accent-green); }
+.wf-check[data-tone="warn"] .wf-check-rail { background: var(--accent-orange); }
+.wf-check[data-tone="fail"] .wf-check-rail { background: var(--accent-red); }
+
+.wf-check-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.wf-check-code {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    border-radius: 5px;
+    padding: 3px 8px;
+}
+
+.wf-check-title {
+    font-size: 16.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+}
+
+.wf-check-verdict {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    padding: 4px 11px;
+    border-radius: 20px;
+}
+
+.wf-check-verdict[data-tone="pass"] { background: var(--tint-green);  color: var(--accent-green); }
+.wf-check-verdict[data-tone="warn"] { background: var(--tint-orange); color: var(--accent-orange); }
+.wf-check-verdict[data-tone="fail"] { background: var(--tint-red);    color: var(--accent-red); }
+
+.wf-check-detail {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.wf-check-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px 22px;
+    margin: 14px 0 0;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border-subtle);
+}
+
+.wf-check-meta dt {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.wf-check-meta dd {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
+/* ---- "How this analysis is produced" ---- */
+.wf-explain {
+    margin: 52px 0 20px;
+    padding-top: 30px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.wf-explain-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 6px;
+}
+
+.wf-explain-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 22px;
+    margin-top: 20px;
+}
+
+.wf-explain-item { position: relative; padding-left: 40px; }
+
+.wf-explain-step {
+    position: absolute;
+    left: 0;
+    top: 1px;
+    width: 27px;
+    height: 27px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 12.5px;
+    font-weight: 700;
+    background: var(--tint-blue);
+    color: var(--accent-blue);
+}
+
+.wf-explain-item h3 {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 5px;
+}
+
+.wf-explain-item p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wf-check { animation: none; opacity: 1; transform: none; }
+}
+
+/* =============================================================================
+   Step 5 — decision outcome
+   After approving or rejecting, the page used to sit unchanged with buttons that
+   no longer applied. This confirms what happened and offers the next estimate,
+   while still allowing the officer to stay and re-read the tender.
+   ============================================================================= */
+
+.wf-outcome-card {
+    position: relative;
+    width: min(440px, calc(100vw - 40px));
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 34px 32px 26px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    animation: wf-outcome-in 460ms var(--ease-spring);
+}
+
+@keyframes wf-outcome-in {
+    from { opacity: 0; transform: translateY(16px) scale(0.96); }
+    to   { opacity: 1; transform: none; }
+}
+
+.wf-outcome-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-size: 26px;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+.wf-outcome-close:hover { color: var(--text-primary); background: var(--surface-2); }
+
+.wf-outcome-mark {
+    width: 68px;
+    height: 68px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    animation: wf-mark-pop 520ms var(--ease-spring) 60ms both;
+}
+
+@keyframes wf-mark-pop {
+    from { transform: scale(0.4); opacity: 0; }
+    to   { transform: none; opacity: 1; }
+}
+
+.wf-outcome-mark svg {
+    width: 32px;
+    height: 32px;
+    fill: none;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.wf-outcome-card[data-tone="ok"]   .wf-outcome-mark { background: var(--tint-green); }
+.wf-outcome-card[data-tone="ok"]   .wf-outcome-mark svg { stroke: var(--accent-green); }
+.wf-outcome-card[data-tone="fail"] .wf-outcome-mark { background: var(--tint-red); }
+.wf-outcome-card[data-tone="fail"] .wf-outcome-mark svg { stroke: var(--accent-red); }
+.wf-outcome-card[data-tone="warn"] .wf-outcome-mark { background: var(--tint-orange); }
+.wf-outcome-card[data-tone="warn"] .wf-outcome-mark svg { stroke: var(--accent-orange); }
+
+.wf-outcome-card h3 {
+    margin: 0 0 4px;
+    font-size: 21px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.wf-outcome-tender {
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.wf-outcome-msg {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.wf-outcome-stats {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin: 20px 0 0;
+}
+
+.wf-outcome-stats > div {
+    flex: 1;
+    background: var(--surface-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 10px 8px;
+}
+
+.wf-outcome-stats dt {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.wf-outcome-stats dd {
+    margin: 2px 0 0;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.wf-outcome-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+}
+
+.wf-outcome-actions .wf-btn {
+    flex: 1;
+    text-align: center;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Textarea inside the request-info dialog matches the other fields. */
+.wf-th-field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 14.5px;
+    font-family: inherit;
+    line-height: 1.55;
+    resize: vertical;
+}
+.wf-th-field textarea:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px var(--tint-blue);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wf-outcome-card, .wf-outcome-mark { animation: none; }
+}

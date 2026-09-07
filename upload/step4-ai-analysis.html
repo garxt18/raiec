@@ -52,13 +52,7 @@
         <h1 class="wf-page-title">AI analysis</h1>
         <p class="wf-page-subtitle">All 4 problem-statement checks have run. Every flag below is advisory — the final decision rests with the officer.</p>
 
-        <div class="wf-stepper">
-            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">Upload</span><div class="wf-step-line"></div></div>
-            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">OCR extract</span><div class="wf-step-line"></div></div>
-            <div class="wf-step completed"><div class="wf-step-circle">✓</div><span class="wf-step-label">Rate match</span><div class="wf-step-line"></div></div>
-            <div class="wf-step active"><div class="wf-step-circle">4</div><span class="wf-step-label">AI analysis</span><div class="wf-step-line"></div></div>
-            <div class="wf-step inactive"><div class="wf-step-circle">5</div><span class="wf-step-label">Officer review</span></div>
-        </div>
+        <div class="wf-stepper" data-step="4" aria-label="Progress"></div>
 
         <div class="wf-summary-row">
             <div class="wf-summary-card"><div class="label">Checks run</div><div class="value" id="aiTotal">—</div></div>
@@ -83,8 +77,45 @@
 
         <div class="wf-actions">
             <button class="wf-btn wf-btn-primary" onclick="sendToOfficerReview()">Send to officer review</button>
-            <button class="wf-btn wf-btn-secondary">Download analysis report</button>
+            <button class="wf-btn wf-btn-secondary" id="wfReportBtn" type="button" onclick="downloadAnalysisReport()">Download analysis report</button>
         </div>
+
+
+        <section class="wf-explain" aria-labelledby="wfExplainTitle">
+            <h2 id="wfExplainTitle" class="wf-explain-title">How this analysis is produced</h2>
+            <div class="wf-explain-grid">
+                <div class="wf-explain-item">
+                    <span class="wf-explain-step">1</span>
+                    <h3>Deterministic checks</h3>
+                    <p>The four problem-statement checks above are rules, not predictions. Each one
+                       recomputes from the extracted figures, so the same estimate always produces
+                       the same verdict and every flag can be traced to a specific line item.</p>
+                </div>
+                <div class="wf-explain-item">
+                    <span class="wf-explain-step">2</span>
+                    <h3>Rate references</h3>
+                    <p>Scheduled items are matched to CPWD DSR and IRUSSOR by item code, falling
+                       back to description similarity when a code is absent. Non-Scheduled items
+                       have no published rate, so they are compared against the lowest rate the
+                       railway has previously accepted for the same work.</p>
+                </div>
+                <div class="wf-explain-item">
+                    <span class="wf-explain-step">3</span>
+                    <h3>The written assessment</h3>
+                    <p>The summary at the top is phrased by a language model from the figures
+                       already computed below &mdash; it interprets, it does not calculate. When no
+                       model is configured the same facts are written up by a built-in rule-based
+                       narrator, and the label above the summary always states which produced it.</p>
+                </div>
+                <div class="wf-explain-item">
+                    <span class="wf-explain-step">4</span>
+                    <h3>Advisory, not deciding</h3>
+                    <p>Nothing here approves or rejects anything. Every flag is a prompt for the
+                       reviewing officer to look closer; the decision, and the responsibility for
+                       it, remain entirely theirs.</p>
+                </div>
+            </div>
+        </section>
 
         <footer class="wf-footer">
             <span>RAIEC · Railway automated intelligent estimate checker</span>

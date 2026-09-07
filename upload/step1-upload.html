@@ -63,32 +63,7 @@
         <p class="wf-page-subtitle">Drop a scanned or native PDF below. Line items are extracted automatically.</p>
 
         <!-- Stepper -->
-        <div class="wf-stepper">
-            <div class="wf-step active">
-                <div class="wf-step-circle">1</div>
-                <span class="wf-step-label">Upload</span>
-                <div class="wf-step-line"></div>
-            </div>
-            <div class="wf-step inactive">
-                <div class="wf-step-circle">2</div>
-                <span class="wf-step-label">OCR extract</span>
-                <div class="wf-step-line"></div>
-            </div>
-            <div class="wf-step inactive">
-                <div class="wf-step-circle">3</div>
-                <span class="wf-step-label">Rate match</span>
-                <div class="wf-step-line"></div>
-            </div>
-            <div class="wf-step inactive">
-                <div class="wf-step-circle">4</div>
-                <span class="wf-step-label">AI analysis</span>
-                <div class="wf-step-line"></div>
-            </div>
-            <div class="wf-step inactive">
-                <div class="wf-step-circle">5</div>
-                <span class="wf-step-label">Officer review</span>
-            </div>
-        </div>
+        <div class="wf-stepper" data-step="1" aria-label="Progress"></div>
 
         <!-- Main Layout -->
         <div class="wf-upload-layout">
@@ -148,8 +123,12 @@
                             </div>
                         </div>
                         <div class="wf-form-group">
-                            <label class="wf-form-label">Tender reference no. (optional)</label>
-                            <input class="wf-form-input" type="text" placeholder="Auto-detected from the PDF">
+                            <label class="wf-form-label" for="tenderRefInput">Tender reference no.</label>
+                            <!-- Read-only: the number is parsed from the PDF, so letting it be
+                                 typed would only allow the record to disagree with the document. -->
+                            <input class="wf-form-input" type="text" id="tenderRefInput"
+                                   data-role="tender-ref" readonly
+                                   placeholder="Detected automatically from the PDF">
                         </div>
                     </div>
                 </div>

@@ -15,6 +15,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -68,6 +69,21 @@ class AuthIntegrationTest {
 
         // ADMIN-only endpoint -> 403 for an officer
         mvc.perform(post("/api/reference/import/irussor").header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void officerCanReadButNotChangeThresholds() throws Exception {
+        MvcResult res = login("officer", "officer@123");
+        String token = JsonPath.read(res.getResponse().getContentAsString(), "$.token");
+        // Reading is part of the officer's job: a verdict is meaningless without its band.
+        mvc.perform(get("/api/settings/thresholds").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+        // Changing them is department-wide, so it is admin-only.
+        mvc.perform(put("/api/settings/thresholds")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("{\"warnPct\":6}"))
                 .andExpect(status().isForbidden());
     }
 

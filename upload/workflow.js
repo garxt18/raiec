@@ -59,6 +59,50 @@ function filterTable(filter) {
     });
 }
 
+
+/* =============================================================================
+   Stepper
+   Rendered from a single definition rather than hand-maintained on five pages,
+   which is how the old markup drifted. A completed stage is a real link back to
+   work already done; an upcoming one is not, because the data does not exist yet.
+   ============================================================================= */
+var WF_STEPS = [
+    { n: 1, label: 'Upload',         page: 'step1-upload.html' },
+    { n: 2, label: 'Extract',        page: 'step2-ocr-extract.html' },
+    { n: 3, label: 'Rate match',     page: 'step3-rate-match.html' },
+    { n: 4, label: 'AI analysis',    page: 'step4-ai-analysis.html' },
+    { n: 5, label: 'Officer review', page: 'step5-officer-review.html' }
+];
+
+function renderStepper() {
+    var host = document.querySelector('.wf-stepper');
+    if (!host) return;
+    var current = parseInt(host.getAttribute('data-step'), 10) || 1;
+    var hasTender = !!getState('tenderId');
+
+    host.innerHTML = WF_STEPS.map(function (s) {
+        var state = s.n < current ? 'done' : (s.n === current ? 'active' : 'todo');
+        // Going back is only meaningful once a tender is loaded.
+        var clickable = state === 'done' && hasTender;
+        var mark = state === 'done'
+            ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>'
+            : s.n;
+        return '<' + (clickable ? 'a href="' + s.page + '"' : 'div') +
+                 ' class="wf-stepp" data-state="' + state + '"' +
+                 (state === 'active' ? ' aria-current="step"' : '') + '>' +
+                 '<span class="wf-stepp-dot">' + mark + '</span>' +
+                 '<span class="wf-stepp-label">' + s.label + '</span>' +
+               '</' + (clickable ? 'a' : 'div') + '>';
+    }).join('');
+
+    // Fill the rail up to the current stage.
+    var pct = ((current - 1) / (WF_STEPS.length - 1)) * 100;
+    host.style.setProperty('--wf-progress', pct + '%');
+    host.setAttribute('data-has-tender', hasTender ? 'yes' : 'no');
+}
+
+document.addEventListener('DOMContentLoaded', renderStepper);
+
 // Navigate between steps
 function navigateTo(page) {
     window.location.href = page;
@@ -140,7 +184,16 @@ function uploadEstimate() {
         return;
     }
     if (btn) { btn.disabled = true; btn.textContent = 'Uploading & extracting...'; }
-    showUploadMessage('Uploading and extracting the tender. This can take a few seconds...', 'info');
+    // A blurred overlay with the real stage named, rather than a progress bar that
+    // is not measuring anything.
+    if (window.RAIEC_UI) {
+        RAIEC_UI.showLoader('Reading the tender', [
+            'Uploading the document…',
+            'Extracting text from the PDF…',
+            'Detecting schedules and line items…',
+            'Structuring the estimate…'
+        ]);
+    }
 
     var form = new FormData();
     form.append('file', raiecSelectedFile);
@@ -155,6 +208,7 @@ function uploadEstimate() {
         })
         .then(function(r) {
             if (!r.ok) {
+                if (window.RAIEC_UI) RAIEC_UI.hideLoader();
                 var msg = (r.body && r.body.message) ? r.body.message : ('Upload failed (HTTP ' + r.status + ').');
                 showUploadMessage(msg, 'error');
                 if (btn) { btn.disabled = false; btn.textContent = 'Submit for validation'; }
@@ -162,9 +216,13 @@ function uploadEstimate() {
             }
             saveState('tenderId', r.body.id);
             saveState('tenderSummary', r.body);
-            navigateTo('step2-ocr-extract.html');
+            // Show what was actually read before leaving the page, so the parse result
+            // is visible rather than flashing past.
+            fillDetectedReference(r.body);
+            setTimeout(function () { navigateTo('step2-ocr-extract.html'); }, 900);
         })
         .catch(function() {
+            if (window.RAIEC_UI) RAIEC_UI.hideLoader();
             showUploadMessage('Could not reach the server (' + ((window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiOrigin) || 'http://localhost:8080') + ').', 'error');
             if (btn) { btn.disabled = false; btn.textContent = 'Submit for validation'; }
         });
@@ -196,10 +254,18 @@ function initOcrExtract() {
     }
     tbody.innerHTML = '<tr><td colspan="3">Loading extracted items...</td></tr>';
 
+    if (window.RAIEC_UI) {
+        RAIEC_UI.showLoader('Extracting the estimate', [
+            'Reading schedules…',
+            'Collecting line items and rate breakups…',
+            'Separating Non-Scheduled items…'
+        ]);
+    }
     fetch(RAIEC_API + '/tenders/' + id)
         .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-        .then(function(t) { renderOcr(t); })
+        .then(function(t) { renderOcr(t); if (window.RAIEC_UI) RAIEC_UI.hideLoader(); })
         .catch(function() {
+            if (window.RAIEC_UI) RAIEC_UI.hideLoader();
             tbody.innerHTML = '<tr><td colspan="3">Could not load the tender from the server (is it running on :8080?).</td></tr>';
         });
 }
@@ -226,7 +292,13 @@ function renderOcr(tender) {
     } else {
         tbody.innerHTML = items.map(function(it) {
             var qty = (it.qty != null ? it.qty : '') + (it.unit ? ' ' + it.unit : '');
-            return '<tr><td>' + escapeHtml(it.desc) + '</td><td>' + escapeHtml(qty) + '</td><td>' + formatNum(it.rate) + '</td></tr>';
+            // Rate carries its own colour: it is the number being vetted, and it should
+            // not read as just another figure alongside the quantity.
+            return '<tr>'
+                + '<td>' + escapeHtml(it.desc) + '</td>'
+                + '<td class="ocr-qty">' + escapeHtml(qty) + '</td>'
+                + '<td class="ocr-rate">₹ ' + formatNum(it.rate) + '</td>'
+                + '</tr>';
         }).join('');
     }
 
@@ -260,13 +332,18 @@ function rejectTender() {
     decideTender('reject', 'Estimate rejected and sent back.');
 }
 
-function decideTender(action, label) {
+function decideTender(action, label, remark) {
     var id = getState('tenderId');
     if (!id) {
         showReviewMessage('No tender loaded. Please upload an estimate first.', 'error');
         return;
     }
-    fetch(RAIEC_API + '/tenders/' + id + '/' + action, { method: 'POST' })
+    var opts = { method: 'POST' };
+    if (remark) {
+        opts.headers = { 'Content-Type': 'application/json' };
+        opts.body = JSON.stringify({ remark: remark });
+    }
+    fetch(RAIEC_API + '/tenders/' + id + '/' + action, opts)
         .then(function(res) {
             return res.json().then(function(b) {
                 return { ok: res.ok, status: res.status, body: b };
@@ -285,6 +362,9 @@ function decideTender(action, label) {
                     + (r.body.larUpdated || 0) + ' updated in the LAR dataset.';
             }
             showReviewMessage(msg, 'success');
+            // The page used to just sit there after a decision, giving no sense that
+            // anything had concluded. Confirm the outcome and offer the obvious next move.
+            showOutcome(action, msg, r.body);
         })
         .catch(function() {
             showReviewMessage('Could not reach the server (' + ((window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiOrigin) || 'http://localhost:8080') + ').', 'error');
@@ -315,10 +395,19 @@ function initRateMatch() {
         return;
     }
     tbody.innerHTML = '<tr><td colspan="9">Running rate match…</td></tr>';
+    if (window.RAIEC_UI) {
+        RAIEC_UI.showLoader('Matching rates', [
+            'Reading the extracted line items…',
+            'Looking up IRUSSOR and CPWD DSR…',
+            'Checking Non-Scheduled items against the LAR dataset…',
+            'Calculating variance against tolerance…'
+        ]);
+    }
     fetch(RAIEC_API + '/tenders/' + id + '/rate-match')
         .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-        .then(function(d) { renderRateMatch(d); })
+        .then(function(d) { renderRateMatch(d); if (window.RAIEC_UI) RAIEC_UI.hideLoader(); })
         .catch(function() {
+            if (window.RAIEC_UI) RAIEC_UI.hideLoader();
             tbody.innerHTML = '<tr><td colspan="9">Could not load rate match from the server (:8080).</td></tr>';
         });
 }
@@ -441,10 +530,19 @@ function initAiAnalysis() {
         box.innerHTML = '<div class="wf-ai-card"><div class="wf-ai-content"><div class="wf-ai-desc">No tender loaded. Please upload an estimate first.</div></div></div>';
         return;
     }
+    if (window.RAIEC_UI) {
+        RAIEC_UI.showLoader('Running analysis', [
+            'Checking rates against tolerance…',
+            'Comparing NS items with accepted rates…',
+            'Verifying quantity × rate = amount…',
+            'Looking for duplicate proposals…'
+        ]);
+    }
     fetch(RAIEC_API + '/tenders/' + id + '/ai-analysis')
         .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-        .then(function(d) { renderAiAnalysis(d); })
+        .then(function(d) { renderAiAnalysis(d); if (window.RAIEC_UI) RAIEC_UI.hideLoader(); })
         .catch(function() {
+            if (window.RAIEC_UI) RAIEC_UI.hideLoader();
             box.innerHTML = '<div class="wf-ai-card"><div class="wf-ai-content"><div class="wf-ai-desc">Could not load AI analysis from the server (:8080).</div></div></div>';
         });
 }
@@ -459,21 +557,49 @@ function renderAiAnalysis(d) {
         box.innerHTML = '<div class="wf-ai-card"><div class="wf-ai-content"><div class="wf-ai-desc">No checks available.</div></div></div>';
         return;
     }
-    box.innerHTML = d.checks.map(function(c) {
-        var cardCls = c.status === 'FAIL' ? 'fail' : (c.status === 'WARN' ? 'warn' : 'pass');
-        var badge = c.status === 'FAIL' ? '<span class="wf-badge wf-badge-red">FAIL</span>'
-            : (c.status === 'WARN' ? '<span class="wf-badge wf-badge-yellow">WARN</span>'
-            : '<span class="wf-badge wf-badge-green">Pass</span>');
-        return '<div class="wf-ai-card ' + cardCls + '">' +
-            '<div class="wf-ai-id">' + escapeHtml(c.code) + '</div>' +
-            '<div class="wf-ai-content">' +
-                '<div class="wf-ai-title">' + escapeHtml(c.title) + '</div>' +
-                '<div class="wf-ai-desc">' + escapeHtml(c.detail) + '</div>' +
-            '</div>' +
-            '<div class="wf-ai-status">' + badge + '</div>' +
-        '</div>';
+    // Each check states what it looked at, what it concluded, and why that matters.
+    // The old card showed a code and a sentence, which told the officer nothing about
+    // what had actually been examined.
+    box.innerHTML = d.checks.map(function(c, idx) {
+        var tone = c.status === 'FAIL' ? 'fail' : (c.status === 'WARN' ? 'warn' : 'pass');
+        var meta = AI_CHECK_META[c.code] || { what: '', why: '' };
+        return '<article class="wf-check" data-tone="' + tone + '" style="--i:' + idx + '">' +
+            '<div class="wf-check-rail" aria-hidden="true"></div>' +
+            '<header class="wf-check-head">' +
+                '<span class="wf-check-code">' + escapeHtml(c.code) + '</span>' +
+                '<h3 class="wf-check-title">' + escapeHtml(c.title) + '</h3>' +
+                '<span class="wf-check-verdict" data-tone="' + tone + '">' + escapeHtml(c.status) + '</span>' +
+            '</header>' +
+            '<p class="wf-check-detail">' + escapeHtml(c.detail) + '</p>' +
+            (meta.what ? '<dl class="wf-check-meta">' +
+                '<div><dt>Checks</dt><dd>' + escapeHtml(meta.what) + '</dd></div>' +
+                '<div><dt>Why</dt><dd>' + escapeHtml(meta.why) + '</dd></div>' +
+            '</dl>' : '') +
+        '</article>';
     }).join('');
 }
+
+/* What each problem-statement check actually does. Kept beside the renderer so the
+   explanation cannot drift away from the check it describes. */
+var AI_CHECK_META = {
+    'PS-01': {
+        what: 'Every line item’s quoted rate against its IRUSSOR, CPWD DSR or LAR reference.',
+        why: 'Over-quoting against a published schedule is the most direct way an estimate inflates public cost.'
+    },
+    'PS-02': {
+        what: 'Non-Scheduled items against the lowest rate the railway has previously accepted.',
+        why: 'NS items have no published rate, so past accepted rates are the only defensible benchmark.'
+    },
+    'PS-03': {
+        what: 'That quantity × rate equals the stated amount on every priced row.',
+        why: 'Arithmetic slips carry straight through to the contract value and are easily missed by eye.'
+    },
+    'PS-04': {
+        what: 'Other tenders in the system describing the same work.',
+        why: 'The same work tendered twice risks paying for it twice.'
+    }
+};
+
 
 
 
@@ -489,6 +615,13 @@ function initOfficerReview() {
         return;
     }
     var base = RAIEC_API + '/tenders/' + id;
+    if (window.RAIEC_UI) {
+        RAIEC_UI.showLoader('Preparing the review', [
+            'Loading the tender record…',
+            'Fetching rate comparison…',
+            'Collecting analysis results…'
+        ]);
+    }
     Promise.all([
         fetch(base).then(orOkJson),
         fetch(base + '/rate-match').then(orOkJson),
@@ -497,6 +630,9 @@ function initOfficerReview() {
         fillOfficerReview(r[0], r[1], r[2]);
     }).catch(function() {
         setRmText('orAlertTitle', 'Could not load review from the server (:8080)');
+    }).finally(function() {
+        // finally, not then: the overlay must clear whether or not the reads succeeded.
+        if (window.RAIEC_UI) RAIEC_UI.hideLoader();
     });
 }
 
@@ -562,4 +698,377 @@ function sendToOfficerReview() {
     fetch(RAIEC_API + '/tenders/' + id + '/send-to-review', { method: 'POST' })
         .catch(function() {})
         .finally(function() { navigateTo('step5-officer-review.html'); });
+}
+
+
+/* -----------------------------------------------------------------------------
+   Tender reference
+   The field on step 1 is read-only and filled from the parse: the number comes
+   out of the PDF, so asking the officer to retype it would only invite a
+   mismatch between what was uploaded and what is recorded.
+   -------------------------------------------------------------------------- */
+function fillDetectedReference(summary) {
+    if (!summary) return;
+    var field = document.getElementById('tenderRefInput')
+             || document.querySelector('.wf-form-input[data-role="tender-ref"]');
+    if (field) {
+        field.value = summary.tenderNo || '';
+        field.classList.add('is-detected');
+    }
+    var msg = document.getElementById('uploadMessage');
+    if (msg && summary.tenderNo) {
+        msg.hidden = false;
+        msg.innerHTML = '<span style="color:var(--accent-green)">✓</span> Detected tender '
+            + '<strong>' + escapeHtml(summary.tenderNo) + '</strong>'
+            + (summary.nameOfWork ? ' — ' + escapeHtml(truncateRm(summary.nameOfWork, 70)) : '');
+        msg.style.color = 'var(--text-secondary)';
+    }
+}
+
+
+/* =============================================================================
+   Benchmark panel (step 3)
+   Shows the tolerance the verdicts were measured against, because a FAIL means
+   nothing unless you know the band it failed. Admins can edit it in place;
+   officers see the same values read-only.
+   ============================================================================= */
+function initThresholdPanel() {
+    var host = document.getElementById('wfThresholds');
+    if (!host) return;
+    var isAdmin = (localStorage.getItem('raiec_role') || '').toUpperCase() === 'ADMIN';
+
+    fetch(RAIEC_API + '/settings/thresholds')
+        .then(orOkJson)
+        .then(function (t) { renderThresholds(host, t, isAdmin); })
+        .catch(function () { host.innerHTML = '<div class="wf-th-err">Benchmark unavailable.</div>'; });
+}
+
+function renderThresholds(host, t, isAdmin) {
+    host.innerHTML =
+        '<div class="wf-th-head">' +
+          '<span class="wf-th-title">Benchmark</span>' +
+          (isAdmin ? '<button type="button" class="wf-th-edit" id="wfThEdit">Edit</button>' : '') +
+        '</div>' +
+        '<dl class="wf-th-list">' +
+          thRow('Acceptable', 'at or below reference, up to +' + fmtPct(t.warnPct) + '%', 'ok') +
+          thRow('Warn', '+' + fmtPct(t.warnPct) + '% to +' + fmtPct(t.failPct) + '%', 'warn') +
+          thRow('Fail', 'above +' + fmtPct(t.failPct) + '%', 'fail') +
+          thRow('LAR valid for', t.larValidityMonths + ' months', 'muted') +
+        '</dl>' +
+        (t.updatedBy ? '<p class="wf-th-meta">Last changed by ' + escapeHtml(t.updatedBy) + '</p>' : '');
+
+    var editBtn = document.getElementById('wfThEdit');
+    if (editBtn) editBtn.addEventListener('click', function () { openThresholdEditor(host, t); });
+}
+
+function thRow(label, value, tone) {
+    return '<div class="wf-th-row" data-tone="' + tone + '">' +
+             '<dt>' + escapeHtml(label) + '</dt><dd>' + escapeHtml(value) + '</dd>' +
+           '</div>';
+}
+
+function fmtPct(v) {
+    var n = Number(v);
+    return isNaN(n) ? v : (n % 1 === 0 ? n.toFixed(0) : n.toFixed(2).replace(/0$/, ''));
+}
+
+function openThresholdEditor(host, t) {
+    var ov = document.createElement('div');
+    ov.className = 'raiec-loader open wf-th-modal';   // reuse the blurred overlay
+    ov.innerHTML =
+        '<div class="wf-th-dialog" role="dialog" aria-modal="true" aria-labelledby="wfThDlgTitle">' +
+          '<h3 id="wfThDlgTitle">Edit benchmark</h3>' +
+          '<p class="wf-th-dialog-sub">Applies to every tender checked from now on.</p>' +
+          thField('Warn above (%)', 'thWarn', t.warnPct) +
+          thField('Fail above (%)', 'thFail', t.failPct) +
+          thField('LAR valid for (months)', 'thLar', t.larValidityMonths) +
+          '<p class="wf-th-error" id="thError" hidden></p>' +
+          '<div class="wf-th-actions">' +
+            '<button type="button" class="wf-btn wf-btn-secondary" id="thCancel">Cancel</button>' +
+            '<button type="button" class="wf-btn wf-btn-primary" id="thSave">Save</button>' +
+          '</div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    document.documentElement.classList.add('modal-open');
+
+    function close() {
+        ov.remove();
+        document.documentElement.classList.remove('modal-open');
+    }
+    ov.addEventListener('mousedown', function (e) { if (e.target === ov) close(); });
+    document.getElementById('thCancel').addEventListener('click', close);
+
+    document.getElementById('thSave').addEventListener('click', function () {
+        var err = document.getElementById('thError');
+        var body = {
+            warnPct: parseFloat(document.getElementById('thWarn').value),
+            failPct: parseFloat(document.getElementById('thFail').value),
+            larValidityMonths: parseInt(document.getElementById('thLar').value, 10)
+        };
+        // Check the one rule the officer is most likely to trip before a round trip.
+        if (!(body.warnPct < body.failPct)) {
+            err.hidden = false;
+            err.textContent = 'Warn must be below Fail, otherwise nothing could ever be a warning.';
+            return;
+        }
+        err.hidden = true;
+        fetch(RAIEC_API + '/settings/thresholds', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        }).then(function (res) {
+            if (!res.ok) return res.json().then(function (b) { throw new Error(b.message || 'Update failed'); });
+            return res.json();
+        }).then(function (updated) {
+            close();
+            renderThresholds(host, updated, true);
+            // The verdicts on screen were measured against the old bands.
+            if (typeof initRateMatch === 'function') initRateMatch();
+        }).catch(function (e) {
+            err.hidden = false;
+            err.textContent = e.message || 'Could not save.';
+        });
+    });
+}
+
+function thField(label, id, value) {
+    return '<label class="wf-th-field"><span>' + escapeHtml(label) + '</span>' +
+           '<input type="number" step="0.01" min="0" id="' + id + '" value="' + escapeHtml(String(value)) + '"></label>';
+}
+
+document.addEventListener('DOMContentLoaded', initThresholdPanel);
+
+
+/* =============================================================================
+   Analysis report
+   The button previously had no handler. It now builds a self-contained HTML
+   report from the same endpoints the screen uses and downloads it. Self-contained
+   HTML rather than a rendered PDF: it opens anywhere, prints to PDF from the
+   browser, and stays readable without RAIEC running.
+   ============================================================================= */
+function downloadAnalysisReport() {
+    var id = getState('tenderId');
+    if (!id) { alert('No tender loaded.'); return; }
+    var btn = document.getElementById('wfReportBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Preparing\u2026'; }
+
+    var base = RAIEC_API + '/tenders/' + id;
+    Promise.all([
+        fetch(base).then(orOkJson),
+        fetch(base + '/rate-match').then(orOkJson),
+        fetch(base + '/ai-analysis').then(orOkJson),
+        fetch(base + '/ai-summary').then(orOkJson).catch(function () { return null; })
+    ]).then(function (r) {
+        var html = buildReportHtml(r[0], r[1], r[2], r[3]);
+        var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'RAIEC-analysis-' + String(r[0].tenderNo || id).replace(/[^\w.-]+/g, '-') + '.html';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    }).catch(function () {
+        alert('Could not build the report \u2014 the server did not return the analysis.');
+    }).finally(function () {
+        if (btn) { btn.disabled = false; btn.textContent = 'Download analysis report'; }
+    });
+}
+
+function buildReportHtml(t, rm, ai, summary) {
+    var esc = escapeHtml;
+    var generated = new Date().toLocaleString('en-IN');
+    var flagged = (rm.items || []).filter(function (i) { return i.status === 'FAIL' || i.status === 'WARN'; });
+
+    function money(v) { return v == null ? '\u2014' : Number(v).toLocaleString('en-IN'); }
+
+    function itemRows(list) {
+        if (!list.length) return '<tr><td colspan="6" class="muted">None.</td></tr>';
+        return list.map(function (i) {
+            return '<tr>'
+                + '<td>' + esc(i.description || i.itemCode || '') + '</td>'
+                + '<td>' + esc(i.source || '') + '</td>'
+                + '<td class="num">' + money(i.tenderRate) + '</td>'
+                + '<td class="num">' + money(i.referenceRate) + '</td>'
+                + '<td class="num">' + (i.variancePct != null ? (i.variancePct > 0 ? '+' : '') + i.variancePct + '%' : '\u2014') + '</td>'
+                + '<td><span class="v v-' + esc(i.status) + '">' + esc(i.status) + '</span></td>'
+                + '</tr>';
+        }).join('');
+    }
+
+    var css = 'body{font:14px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#111827;margin:0;padding:40px;background:#fff}'
+        + '.wrap{max-width:900px;margin:0 auto}'
+        + 'h1{font-size:24px;margin:0 0 4px}'
+        + 'h2{font-size:17px;margin:34px 0 10px;padding-bottom:6px;border-bottom:1px solid #e5e7eb}'
+        + '.sub{color:#6b7280;margin:0 0 22px;font-size:13px}'
+        + 'table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}'
+        + 'th,td{text-align:left;padding:7px 9px;border-bottom:1px solid #eef0f3;vertical-align:top}'
+        + 'th{background:#f8fafc;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#6b7280}'
+        + '.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}'
+        + '.muted{color:#9ca3af}'
+        + '.kv{display:grid;grid-template-columns:190px 1fr;gap:6px 16px;font-size:13px}'
+        + '.kv dt{color:#6b7280}.kv dd{margin:0;font-weight:600}'
+        + '.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0 4px}'
+        + '.card{border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:12px;color:#6b7280}'
+        + '.card b{display:block;font-size:22px;color:#111827}'
+        + '.v{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}'
+        + '.v-OK{background:#dcfce7;color:#166534}.v-WARN{background:#fef3c7;color:#92400e}'
+        + '.v-FAIL{background:#fee2e2;color:#991b1b}.v-NO_REFERENCE{background:#f1f5f9;color:#475569}'
+        + '.chk{border-left:3px solid #cbd5e1;padding:8px 0 8px 12px;margin-bottom:10px}'
+        + '.chk.PASS{border-color:#16a34a}.chk.WARN{border-color:#d97706}.chk.FAIL{border-color:#dc2626}'
+        + '.chk b{display:block}'
+        + '.foot{margin-top:40px;padding-top:14px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:11.5px}'
+        + '@media print{body{padding:0}h2{page-break-after:avoid}tr{page-break-inside:avoid}}';
+
+    var checks = (ai.checks || []).map(function (c) {
+        return '<div class="chk ' + esc(c.status) + '"><b>' + esc(c.code) + ' \u00b7 ' + esc(c.title)
+             + ' \u2014 ' + esc(c.status) + '</b>' + esc(c.detail) + '</div>';
+    }).join('');
+
+    var assessment = (summary && summary.summary)
+        ? '<h2>Assessment</h2><p>' + esc(summary.summary) + '</p>'
+          + '<p class="sub">Risk: ' + esc(summary.riskLevel || '') + ' \u00b7 Source: '
+          + esc(summary.source === 'llm' ? 'AI language model' : 'Rule-based') + '</p>'
+        : '';
+
+    return '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+      + '<title>RAIEC analysis \u2014 ' + esc(t.tenderNo || '') + '</title><style>' + css + '</style></head>'
+      + '<body><div class="wrap">'
+      + '<h1>Estimate analysis report</h1>'
+      + '<p class="sub">RAIEC \u2014 Railway Automated Intelligent Estimate Checker \u00b7 North Western Railway, Civil &amp; Construction</p>'
+      + '<h2>Tender</h2><dl class="kv">'
+        + '<dt>Tender number</dt><dd>' + esc(t.tenderNo || '\u2014') + '</dd>'
+        + '<dt>Name of work</dt><dd>' + esc(t.nameOfWork || '\u2014') + '</dd>'
+        + '<dt>Division</dt><dd>' + esc(t.division || '\u2014') + '</dd>'
+        + '<dt>Originating post</dt><dd>' + esc(t.post || '\u2014') + '</dd>'
+        + '<dt>Advertised value</dt><dd>' + (t.advertisedValue != null ? '\u20b9 ' + money(t.advertisedValue) : '\u2014') + '</dd>'
+        + '<dt>Status at analysis</dt><dd>' + esc(t.status || '\u2014') + '</dd>'
+      + '</dl>'
+      + '<h2>Rate comparison</h2><div class="cards">'
+        + '<div class="card"><b>' + rm.totalItems + '</b>items checked</div>'
+        + '<div class="card"><b>' + rm.matched + '</b>within tolerance</div>'
+        + '<div class="card"><b>' + rm.warn + '</b>warnings</div>'
+        + '<div class="card"><b>' + rm.fail + '</b>failures</div>'
+      + '</div>'
+      + '<p class="sub">' + rm.noReference + ' item(s) had no reference rate available and were not scored.</p>'
+      + '<h2>Flagged items (' + flagged.length + ')</h2>'
+      + '<table><thead><tr><th>Description</th><th>Source</th><th class="num">Quoted</th>'
+      + '<th class="num">Reference</th><th class="num">Variance</th><th>Verdict</th></tr></thead>'
+      + '<tbody>' + itemRows(flagged) + '</tbody></table>'
+      + '<h2>Automated checks</h2>' + checks
+      + assessment
+      + '<div class="foot">Generated ' + esc(generated)
+      + '. Advisory only \u2014 the vetting decision rests with the reviewing officer.</div>'
+      + '</div></body></html>';
+}
+
+
+/* =============================================================================
+   Officer decision
+   ============================================================================= */
+
+/**
+ * "Request more info" is a hold, not a verdict, so it asks what is being queried.
+ * The question is stored on the tender rather than lost in conversation.
+ */
+function requestMoreInfo() {
+    var ov = document.createElement('div');
+    ov.className = 'raiec-loader open wf-th-modal';
+    ov.innerHTML =
+        '<div class="wf-th-dialog" role="dialog" aria-modal="true" aria-labelledby="riTitle">' +
+          '<h3 id="riTitle">Request more information</h3>' +
+          '<p class="wf-th-dialog-sub">The tender stays open. You can still approve or reject it later.</p>' +
+          '<label class="wf-th-field"><span>What do you need from the filing department?</span>' +
+            '<textarea id="riRemark" rows="4" placeholder="e.g. Attach market quotations for the Non-Scheduled items."></textarea>' +
+          '</label>' +
+          '<p class="wf-th-error" id="riError" hidden></p>' +
+          '<div class="wf-th-actions">' +
+            '<button type="button" class="wf-btn wf-btn-secondary" id="riCancel">Cancel</button>' +
+            '<button type="button" class="wf-btn wf-btn-primary" id="riSend">Send request</button>' +
+          '</div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    document.documentElement.classList.add('modal-open');
+
+    function close() {
+        ov.remove();
+        document.documentElement.classList.remove('modal-open');
+    }
+    ov.addEventListener('mousedown', function (e) { if (e.target === ov) close(); });
+    document.getElementById('riCancel').addEventListener('click', close);
+    setTimeout(function () { var t = document.getElementById('riRemark'); if (t) t.focus(); }, 60);
+
+    document.getElementById('riSend').addEventListener('click', function () {
+        var remark = document.getElementById('riRemark').value.trim();
+        var err = document.getElementById('riError');
+        if (!remark) {
+            err.hidden = false;
+            err.textContent = 'Say what is needed \u2014 an empty request cannot be actioned.';
+            return;
+        }
+        close();
+        decideTender('request-info', 'Clarification requested from the filing department.', remark);
+    });
+}
+
+/**
+ * Closing confirmation. The officer has finished with this tender, so the page
+ * says so plainly and offers the next tender rather than leaving them on a screen
+ * whose buttons no longer apply. Dismissing it keeps them here.
+ */
+function showOutcome(action, message, body) {
+    var tone = action === 'approve' ? 'ok' : (action === 'reject' ? 'fail' : 'warn');
+    var heading = action === 'approve' ? 'Estimate approved'
+                : (action === 'reject' ? 'Estimate rejected' : 'Clarification requested');
+    var summary = getState('tenderSummary') || {};
+
+    var mark = action === 'approve'
+        ? '<path d="M20 6L9 17l-5-5"/>'
+        : (action === 'reject' ? '<path d="M18 6L6 18M6 6l12 12"/>'
+                               : '<path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="9"/>');
+
+    var ov = document.createElement('div');
+    ov.className = 'raiec-loader open wf-outcome';
+    ov.innerHTML =
+        '<div class="wf-outcome-card" role="dialog" aria-modal="true" aria-labelledby="ocTitle" data-tone="' + tone + '">' +
+          '<button type="button" class="wf-outcome-close" id="ocClose" aria-label="Stay on this page">&times;</button>' +
+          '<div class="wf-outcome-mark"><svg viewBox="0 0 24 24" aria-hidden="true">' + mark + '</svg></div>' +
+          '<h3 id="ocTitle">' + escapeHtml(heading) + '</h3>' +
+          '<p class="wf-outcome-tender">' + escapeHtml(summary.tenderNo || '') + '</p>' +
+          '<p class="wf-outcome-msg">' + escapeHtml(message) + '</p>' +
+          (action === 'approve' && body
+            ? '<dl class="wf-outcome-stats">' +
+                '<div><dt>Added to LAR</dt><dd>' + (body.larAdded || 0) + '</dd></div>' +
+                '<div><dt>Rates improved</dt><dd>' + (body.larUpdated || 0) + '</dd></div>' +
+              '</dl>'
+            : '') +
+          '<div class="wf-outcome-actions">' +
+            '<button type="button" class="wf-btn wf-btn-secondary" id="ocStay">Stay here</button>' +
+            '<a class="wf-btn wf-btn-primary" href="step1-upload.html" id="ocNext">Scan another estimate</a>' +
+          '</div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    document.documentElement.classList.add('modal-open');
+
+    function close() {
+        ov.classList.remove('open');
+        document.documentElement.classList.remove('modal-open');
+        setTimeout(function () { ov.remove(); }, 260);
+    }
+    document.getElementById('ocClose').addEventListener('click', close);
+    document.getElementById('ocStay').addEventListener('click', close);
+    ov.addEventListener('mousedown', function (e) { if (e.target === ov) close(); });
+    document.addEventListener('keydown', function esc(e) {
+        if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
+    });
+
+    // Starting a new estimate must not inherit the finished one's state.
+    document.getElementById('ocNext').addEventListener('click', function () {
+        try {
+            sessionStorage.removeItem('raiec_tenderId');
+            sessionStorage.removeItem('raiec_tenderSummary');
+            sessionStorage.removeItem('raiec_uploadedFile');
+        } catch (e) { /* ignore */ }
+    });
 }
