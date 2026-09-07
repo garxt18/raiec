@@ -14,6 +14,8 @@ import com.raiec.tender.entity.Schedule;
 import com.raiec.tender.entity.ScheduleEntry;
 import com.raiec.tender.entity.Tender;
 import com.raiec.tender.repository.TenderRepository;
+import com.raiec.settings.entity.RateThresholds;
+import com.raiec.settings.service.ThresholdService;
 import com.raiec.tender.service.NsItemExtractor;
 import com.raiec.tender.service.TenderNotFoundException;
 import org.springframework.stereotype.Service;
@@ -36,8 +38,8 @@ import java.util.function.Function;
  *
  * A tender is NOT matched against its own LAR records (those came from approving this tender),
  * so NS items are vetted only against OTHER tenders' accepted rates. LAR follows "latest AND
- * least": records within {@link #LAR_VALIDITY_MONTHS} months are preferred and the lowest of those
- * wins; an older record is used only when nothing recent matches, and is then flagged as stale.
+ * least": records inside the configured validity window are preferred and the lowest of those wins;
+ * an older record is used only when nothing recent matches, and is then flagged as stale.
  *
  * The reference is escalated before comparison. A tenderer quotes one common percentage against
  * the schedule - "AT Par", "(+) 8.50" or "(-) 3.20" - which is loaded onto the book rate to give
@@ -45,22 +47,13 @@ import java.util.function.Function;
  *
  * Variance = (tenderRate - effectiveReferenceRate)/effectiveReferenceRate*100, evaluated
  * directionally: a rate at or below the reference is acceptable (cheaper is good); only
- * over-quoting is flagged (> +10% FAIL, +5..+10% WARN, otherwise OK). Fuzzy matches carry a
- * "~NN%" confidence in the source.
+ * over-quoting is flagged. The WARN/FAIL bands, the LAR validity window and the fuzzy-match
+ * threshold are department settings held in the database, not compiled constants, so they can be
+ * adjusted without a rebuild. Fuzzy matches carry a "~NN%" confidence in the source.
  */
 @Service
 public class RateMatchService {
 
-    private static final BigDecimal WARN_LIMIT = new BigDecimal("5");
-    private static final BigDecimal FAIL_LIMIT = new BigDecimal("10");
-    /** Minimum trigram similarity (0..1) for a fuzzy match to be accepted. */
-    private static final double FUZZY_THRESHOLD = 0.45;
-    /**
-     * How long a Last Accepted Rate stays current. The vetting rule is "latest AND least": the
-     * benchmark is the lowest rate among recent ones. Older rates are still used (better than no
-     * reference at all) but are flagged so the officer knows the comparison may be out of date.
-     */
-    private static final int LAR_VALIDITY_MONTHS = 12;
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
     private final TenderRepository tenderRepository;
@@ -68,17 +61,20 @@ public class RateMatchService {
     private final IrussorItemRepository irussorItemRepository;
     private final LarRecordRepository larRecordRepository;
     private final NsItemExtractor nsItemExtractor;
+    private final ThresholdService thresholdService;
 
     public RateMatchService(TenderRepository tenderRepository,
                             DsrItemRepository dsrItemRepository,
                             IrussorItemRepository irussorItemRepository,
                             LarRecordRepository larRecordRepository,
-                            NsItemExtractor nsItemExtractor) {
+                            NsItemExtractor nsItemExtractor,
+                            ThresholdService thresholdService) {
         this.tenderRepository = tenderRepository;
         this.dsrItemRepository = dsrItemRepository;
         this.irussorItemRepository = irussorItemRepository;
         this.larRecordRepository = larRecordRepository;
         this.nsItemExtractor = nsItemExtractor;
+        this.thresholdService = thresholdService;
     }
 
     @Transactional(readOnly = true)
@@ -86,12 +82,13 @@ public class RateMatchService {
         Tender tender = tenderRepository.findById(tenderId)
                 .orElseThrow(() -> new TenderNotFoundException(tenderId));
         String tenderNo = tender.getTenderNo();
+        RateThresholds limits = thresholdService.current();
 
         // LAR records from OTHER tenders, split into those still within the validity window and
         // the full set. Each is keyed by normalized description (lowest rate wins) for fast exact
         // hits, with the list kept for the fuzzy fallback. Recent records are always preferred;
         // an older one is only used when nothing recent matches, and is then flagged as stale.
-        LocalDate freshFrom = LocalDate.now().minusMonths(LAR_VALIDITY_MONTHS);
+        LocalDate freshFrom = LocalDate.now().minusMonths(limits.getLarValidityMonths());
         Map<String, LarRecord> larFreshByDesc = new HashMap<>();
         Map<String, LarRecord> larAnyByDesc = new HashMap<>();
         List<LarRecord> larFresh = new ArrayList<>();
@@ -117,11 +114,11 @@ public class RateMatchService {
             RateSource src = schedule.getRateSource();
             if (src == RateSource.NS) {
                 for (NsItemExtractor.NsLineItem ns : nsItemExtractor.extractFromSchedule(schedule)) {
-                    Ref ref = findLarRef(ns.description(), larFreshByDesc, larFresh, larAnyByDesc, larAny);
+                    Ref ref = findLarRef(ns.description(), larFreshByDesc, larFresh, larAnyByDesc, larAny, limits);
                     items.add(makeItem(ns.scheduleCode(), ns.itemCode(), ns.description(), "NS",
                             ns.quantity(), ns.unit(), ns.rate(), ns.amount(),
                             ref == null ? null : ref.rate(), ref == null ? null : ref.source(),
-                            ns.escalationPct(), ns.atPar(), ref != null && ref.stale()));
+                            ns.escalationPct(), ns.atPar(), ref != null && ref.stale(), limits));
                 }
             } else {
                 for (ScheduleEntry e : schedule.getEntries()) {
@@ -136,18 +133,20 @@ public class RateMatchService {
                         } else if (src == RateSource.DSR) {
                             if (dsrAll == null) dsrAll = dsrItemRepository.findAll();
                             Best fb = bestMatch(b.getDescription(), dsrAll,
-                                    DsrItem::getDescription, DsrItem::getRate, i -> "DSR " + i.getEdition());
+                                    DsrItem::getDescription, DsrItem::getRate, i -> "DSR " + i.getEdition(),
+                                    limits.getFuzzyThreshold().doubleValue());
                             if (fb != null) { refRate = fb.rate(); refSource = fb.source(); }
                         } else if (src == RateSource.IRUSSOR) {
                             if (irussorAll == null) irussorAll = irussorItemRepository.findAll();
                             Best fb = bestMatch(b.getDescription(), irussorAll,
-                                    IrussorItem::getDescription, IrussorItem::getRate, i -> "IRUSSOR " + i.getEdition());
+                                    IrussorItem::getDescription, IrussorItem::getRate, i -> "IRUSSOR " + i.getEdition(),
+                                    limits.getFuzzyThreshold().doubleValue());
                             if (fb != null) { refRate = fb.rate(); refSource = fb.source(); }
                         }
                         items.add(makeItem(schedule.getCode(), b.getItemCode(), b.getDescription(),
                                 src != null ? src.name() : null, b.getQuantity(), b.getUnit(),
                                 b.getRate(), b.getAmount(), refRate, refSource,
-                                e.getEscalationPct(), e.isAtPar(), false));
+                                e.getEscalationPct(), e.isAtPar(), false, limits));
                     }
                 }
             }
@@ -168,12 +167,13 @@ public class RateMatchService {
     }
 
     /**
-     * Best fuzzy match in a candidate list above {@link #FUZZY_THRESHOLD}, by trigram similarity
+     * Best fuzzy match in a candidate list above the configured similarity floor, by trigram
      * on description. Candidates without a usable rate are skipped. The returned source label
      * carries the match confidence (e.g. "DSR 2023 · ~85%").
      */
     private <T> Best bestMatch(String desc, List<T> candidates, Function<T, String> descFn,
-                               Function<T, BigDecimal> rateFn, Function<T, String> labelFn) {
+                               Function<T, BigDecimal> rateFn, Function<T, String> labelFn,
+                               double minSimilarity) {
         double bestSim = 0;
         T best = null;
         for (T c : candidates) {
@@ -185,7 +185,7 @@ public class RateMatchService {
                 best = c;
             }
         }
-        if (best == null || bestSim < FUZZY_THRESHOLD) return null;
+        if (best == null || bestSim < minSimilarity) return null;
         String label = labelFn.apply(best) + " · ~" + Math.round(bestSim * 100) + "%";
         return new Best(rateFn.apply(best), label);
     }
@@ -205,23 +205,25 @@ public class RateMatchService {
      */
     private Ref findLarRef(String desc,
                            Map<String, LarRecord> freshByDesc, List<LarRecord> fresh,
-                           Map<String, LarRecord> anyByDesc, List<LarRecord> any) {
+                           Map<String, LarRecord> anyByDesc, List<LarRecord> any,
+                           RateThresholds limits) {
         String key = normalize(desc);
 
         LarRecord exactFresh = freshByDesc.get(key);
         if (exactFresh != null) return new Ref(exactFresh.getRate(), larLabel(exactFresh), false);
 
+        double minSim = limits.getFuzzyThreshold().doubleValue();
         Best fuzzyFresh = bestMatch(desc, fresh,
-                LarRecord::getDescription, LarRecord::getRate, RateMatchService::larLabel);
+                LarRecord::getDescription, LarRecord::getRate, RateMatchService::larLabel, minSim);
         if (fuzzyFresh != null) return new Ref(fuzzyFresh.rate(), fuzzyFresh.source(), false);
 
         LarRecord exactOld = anyByDesc.get(key);
-        if (exactOld != null) return new Ref(exactOld.getRate(), staleLabel(exactOld), true);
+        if (exactOld != null) return new Ref(exactOld.getRate(), staleLabel(exactOld, limits), true);
 
         Best fuzzyOld = bestMatch(desc, any,
-                LarRecord::getDescription, LarRecord::getRate, RateMatchService::larLabel);
+                LarRecord::getDescription, LarRecord::getRate, RateMatchService::larLabel, minSim);
         if (fuzzyOld != null) return new Ref(fuzzyOld.rate(), fuzzyOld.source() + " · older than "
-                + LAR_VALIDITY_MONTHS + " months", true);
+                + limits.getLarValidityMonths() + " months", true);
 
         return null;
     }
@@ -230,8 +232,8 @@ public class RateMatchService {
         return "LAR " + (r.getSourceTenderNo() != null ? r.getSourceTenderNo() : r.getLarCode());
     }
 
-    private static String staleLabel(LarRecord r) {
-        return larLabel(r) + " · older than " + LAR_VALIDITY_MONTHS + " months";
+    private static String staleLabel(LarRecord r, RateThresholds limits) {
+        return larLabel(r) + " · older than " + limits.getLarValidityMonths() + " months";
     }
 
     private BookRef lookupBook(RateSource src, String code, String edition) {
@@ -254,7 +256,8 @@ public class RateMatchService {
     private RateMatchItem makeItem(String schedule, String code, String desc, String source,
                                    BigDecimal qty, String unit, BigDecimal tenderRate, BigDecimal amount,
                                    BigDecimal referenceRate, String referenceSource,
-                                   BigDecimal escl, boolean atPar, boolean stale) {
+                                   BigDecimal escl, boolean atPar, boolean stale,
+                                   RateThresholds limits) {
         BigDecimal variance = null;
         String status;
         if (referenceRate == null || referenceRate.signum() == 0) {
@@ -266,8 +269,8 @@ public class RateMatchService {
                     .setScale(2, RoundingMode.HALF_UP);
             // Directional: a rate at or below the reference is acceptable (cheaper is good).
             // Only over-quoting is flagged: > +10% FAIL, +5..+10% WARN, otherwise OK.
-            if (variance.compareTo(FAIL_LIMIT) > 0) status = "FAIL";
-            else if (variance.compareTo(WARN_LIMIT) > 0) status = "WARN";
+            if (variance.compareTo(limits.getFailPct()) > 0) status = "FAIL";
+            else if (variance.compareTo(limits.getWarnPct()) > 0) status = "WARN";
             else status = "OK";
         }
         return new RateMatchItem(schedule, code, desc, source, qty, unit, tenderRate, amount,

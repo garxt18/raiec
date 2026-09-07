@@ -55,7 +55,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,
                                 "/api/tenders/*/approve",
                                 "/api/tenders/*/reject",
-                                "/api/tenders/*/send-to-review").hasAnyRole("OFFICER", "ADMIN")
+                                "/api/tenders/*/send-to-review",
+                                "/api/tenders/*/request-info").hasAnyRole("OFFICER", "ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(
                         (request, response, authException) ->

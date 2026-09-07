@@ -90,6 +90,7 @@ public class TenderService {
         long finalized = all.stream().filter(t -> t.getStatus() == TenderStatus.APPROVED).count();
         long closed = all.stream().filter(t -> t.getStatus() == TenderStatus.REJECTED).count();
         long underReview = all.stream().filter(t -> t.getStatus() == TenderStatus.OFFICER_REVIEW).count();
+        long infoRequested = all.stream().filter(t -> t.getStatus() == TenderStatus.INFO_REQUESTED).count();
         long active = all.stream()
                 .filter(t -> t.getStatus() != TenderStatus.APPROVED && t.getStatus() != TenderStatus.REJECTED)
                 .count();
@@ -111,7 +112,7 @@ public class TenderService {
                         t.getCreatedAt()))
                 .toList();
 
-        return new TenderStatsResponse(total, active, underReview, finalized, closed, recent);
+        return new TenderStatsResponse(total, active, underReview, infoRequested, finalized, closed, recent);
     }
 
     @Transactional
@@ -194,6 +195,26 @@ public class TenderService {
             tender.setStatus(TenderStatus.OFFICER_REVIEW);
             tenderRepository.save(tender);
         }
+        return new ApprovalResponse(tender.getTenderNo(), tender.getStatus().name(), 0, 0);
+    }
+
+    /**
+     * Puts the tender on hold pending clarification from the filing department. It is a
+     * hold rather than a verdict, so an already-decided tender is left untouched.
+     */
+    @Transactional
+    public ApprovalResponse requestInfo(Long id, String remark) {
+        Tender tender = tenderRepository.findById(id)
+                .orElseThrow(() -> new TenderNotFoundException(id));
+        if (tender.getStatus() == TenderStatus.APPROVED || tender.getStatus() == TenderStatus.REJECTED) {
+            throw new IllegalArgumentException(
+                    "Tender '" + tender.getTenderNo() + "' is already decided and cannot be reopened for information.");
+        }
+        tender.setStatus(TenderStatus.INFO_REQUESTED);
+        if (remark != null && !remark.isBlank()) {
+            tender.setOfficerRemark(remark.trim());
+        }
+        tenderRepository.save(tender);
         return new ApprovalResponse(tender.getTenderNo(), tender.getStatus().name(), 0, 0);
     }
 

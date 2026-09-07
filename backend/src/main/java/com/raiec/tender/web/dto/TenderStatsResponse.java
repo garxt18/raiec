@@ -7,6 +7,7 @@ public record TenderStatsResponse(
         long total,
         long active,
         long underReview,
+        long infoRequested,
         long finalized,
         long closed,
         List<RecentActivity> recent

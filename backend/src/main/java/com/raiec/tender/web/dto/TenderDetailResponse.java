@@ -32,6 +32,7 @@ public record TenderDetailResponse(
         LocalDateTime closingDateTime,
         LocalDate biddingStartDate,
         String status,
+        String officerRemark,
         String originalFileName,
         List<ScheduleDetail> schedules
 ) {
@@ -63,6 +64,7 @@ public record TenderDetailResponse(
                 t.getClosingDateTime(),
                 t.getBiddingStartDate(),
                 t.getStatus() != null ? t.getStatus().name() : null,
+                t.getOfficerRemark(),
                 t.getOriginalFileName(),
                 schedules);
     }

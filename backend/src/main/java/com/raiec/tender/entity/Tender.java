@@ -117,6 +117,10 @@ public class Tender {
     private TenderStatus status;
 
     /** Name of the uploaded PDF (provenance). */
+    /** Free-text note from the officer, e.g. what clarification was asked for. */
+    @Column(name = "officer_remark", columnDefinition = "text")
+    private String officerRemark;
+
     @Column(name = "original_file_name", length = 255)
     private String originalFileName;
 

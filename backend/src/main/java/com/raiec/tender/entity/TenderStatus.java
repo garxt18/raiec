@@ -9,6 +9,8 @@ public enum TenderStatus {
     RATE_MATCHED,
     AI_ANALYZED,
     OFFICER_REVIEW,
+    /** Officer has asked the filing department for clarification; not yet decided. */
+    INFO_REQUESTED,
     APPROVED,
     REJECTED
 }
