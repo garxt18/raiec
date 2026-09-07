@@ -685,3 +685,379 @@ body {
     padding-left: clamp(16px, 2.5vw, 32px);
     padding-right: clamp(16px, 2.5vw, 32px);
 }
+
+/* =============================================================================
+   Status tabs
+   Approve / reject / info-requested belong to the queue, not to one tender's
+   upload flow, so they filter the table here.
+   ============================================================================= */
+
+.td-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 0 0 16px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 4px;
+}
+
+.td-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background var(--dur-fast) var(--ease-out),
+                color var(--dur-fast) var(--ease-out),
+                border-color var(--dur-fast) var(--ease-out);
+}
+
+.td-tab:hover:not(:disabled) { background: var(--surface-2); color: var(--text-primary); }
+
+.td-tab.active {
+    background: var(--tint-blue);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+/* A stage with nothing in it is shown but not offered — the count is information. */
+.td-tab:disabled { opacity: 0.4; cursor: default; }
+
+.td-tab-count {
+    font-size: 11.5px;
+    font-weight: 700;
+    background: var(--surface-2);
+    border-radius: 20px;
+    padding: 1px 7px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.td-tab.active .td-tab-count { background: var(--accent-blue); color: #fff; }
+
+/* =============================================================================
+   Activity calendar
+   Density is the point: which days carried load. The count is emphasised over
+   the date, and the tint gives the shape of a month at a glance.
+   ============================================================================= */
+
+.td-calendar { padding: 4px 2px 2px; }
+
+.td-cal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.td-cal-month { font-size: 14.5px; font-weight: 700; color: var(--text-primary); }
+
+.td-cal-nav {
+    background: var(--surface-1);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.td-cal-nav:hover { background: var(--surface-2); color: var(--text-primary); }
+
+.td-cal-dow,
+.td-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+
+.td-cal-dow {
+    margin-bottom: 5px;
+}
+
+.td-cal-dow span {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.td-cal-cell {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    min-height: 42px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    background: var(--surface-1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 2px;
+    transition: transform var(--dur-fast) var(--ease-spring),
+                border-color var(--dur-fast) var(--ease-out);
+}
+
+.td-cal-cell.is-empty { border: none; background: none; cursor: default; }
+.td-cal-cell:disabled { cursor: default; }
+
+.td-cal-cell:not(:disabled):hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-blue);
+}
+
+.td-cal-num { font-size: 11.5px; color: var(--text-muted); line-height: 1; }
+
+/* The count is the headline, not the date. */
+.td-cal-count {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+}
+
+/* Four discrete bands: the eye reads steps far better than a gradient. */
+.td-cal-cell[data-level="1"] { background: color-mix(in srgb, var(--accent-blue) 12%, transparent); }
+.td-cal-cell[data-level="2"] { background: color-mix(in srgb, var(--accent-blue) 24%, transparent); }
+.td-cal-cell[data-level="3"] { background: color-mix(in srgb, var(--accent-blue) 38%, transparent); }
+.td-cal-cell[data-level="4"] { background: color-mix(in srgb, var(--accent-blue) 55%, transparent); }
+
+.td-cal-cell.is-today { border-color: var(--accent-cyan); }
+
+.td-cal-cell.is-selected {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 2px var(--tint-blue);
+}
+
+.td-cal-clear {
+    margin-top: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+.td-cal-clear:hover { color: var(--text-primary); background: var(--surface-3); }
+
+/* =============================================================================
+   Rows and tiles as controls
+   ============================================================================= */
+
+.td-row { cursor: pointer; transition: background var(--dur-fast) var(--ease-out); }
+.td-row:hover { background: var(--surface-1); }
+.td-row:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: -2px;
+}
+
+.td-stat-card.is-clickable { cursor: pointer; }
+.td-stat-card.is-clickable:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-blue);
+}
+.td-stat-card.is-clickable:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+.td-pill-info { background: var(--tint-orange); color: var(--accent-orange); }
+.td-pill-info::before { background: var(--accent-orange); }
+
+@media (max-width: 640px) {
+    .td-cal-cell { min-height: 34px; }
+    .td-cal-count { font-size: 13px; }
+    .td-tabs { gap: 4px; }
+    .td-tab { padding: 6px 10px; font-size: 12.5px; }
+}
+
+/* =============================================================================
+   Add-LAR dialog
+   A hand-entered rate becomes the benchmark future tenders are measured against,
+   so it gets a real form rather than a chain of prompt() boxes.
+   ============================================================================= */
+
+.lar-dialog {
+    position: relative;
+    width: min(560px, calc(100vw - 40px));
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 30px 32px 24px;
+    box-shadow: var(--shadow-lg);
+}
+
+.lar-dialog-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-size: 26px;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+.lar-dialog-close:hover { color: var(--text-primary); background: var(--surface-2); }
+
+.lar-dialog h3 {
+    margin: 0 0 6px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.lar-dialog-sub {
+    margin: 0 0 18px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.lar-dialog-warn {
+    margin: 0 0 16px;
+    font-size: 13px;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--tint-orange);
+    color: var(--accent-orange);
+}
+
+.lar-form { display: flex; flex-direction: column; gap: 14px; }
+
+.lar-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.lar-field { display: block; }
+
+.lar-field span {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+}
+
+.lar-field span b { color: var(--accent-red); font-weight: 700; }
+
+.lar-field input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 14.5px;
+    font-family: inherit;
+}
+
+.lar-field input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px var(--tint-blue);
+}
+
+.lar-dialog-error {
+    margin: 14px 0 0;
+    font-size: 13px;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--tint-red);
+    color: var(--accent-red);
+}
+
+.lar-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+/* =============================================================================
+   Recent updates
+   Ten entries with the rate set apart, so the panel gives a sense of what is
+   arriving in the dataset rather than a cramped box nobody reads.
+   ============================================================================= */
+
+.lar-upd {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 11px 2px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.lar-upd:last-child { border-bottom: none; }
+
+.lar-upd-main { min-width: 0; flex: 1; }
+
+.lar-upd-desc {
+    margin: 0 0 3px;
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text-primary);
+}
+
+.lar-upd-meta {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+.lar-upd-side {
+    text-align: right;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.lar-upd-rate {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--accent-green);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.lar-upd-unit { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.lar-upd-date { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
+.lar-upd-empty {
+    margin: 0;
+    padding: 16px 2px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+
+@media (max-width: 560px) {
+    .lar-form-row { grid-template-columns: 1fr; }
+    .lar-dialog { padding: 24px 20px 20px; }
+}

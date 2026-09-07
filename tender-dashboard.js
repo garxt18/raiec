@@ -270,23 +270,152 @@
         });
     });
 
-    // Add New LAR (demo prompt-based; replace with modal/form when backend ready)
+    // This block lives in its own IIFE, so it needs its own handle on the API base
+    // and its own escaper — larEsc belongs to the live-data block further down.
+    var API = (window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiBase) || 'http://localhost:8080/api';
+
+    function larEscLocal(v) {
+        return String(v == null ? '' : v)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /* ---------------------------------------------------------------------
+       Add a rate by hand
+       Was four chained prompt() boxes writing to a client-side array, so
+       nothing survived a refresh. It is a real form posting to the API now:
+       a hand-entered rate becomes the benchmark future tenders are vetted
+       against, so it deserves the same care as one earned by approval.
+       ------------------------------------------------------------------- */
     var addBtn = document.getElementById('larAddBtn');
-    if (addBtn) {
-        addBtn.addEventListener('click', function() {
-            var code = prompt('New LAR Item Code (e.g. USSOR-C-100):');
-            if (!code) return;
-            var desc = prompt('Description:') || 'Untitled item';
-            var value = parseFloat(prompt('LAR Value (₹):')) || 0;
-            var unit = prompt('Unit (Cum / MT / m):') || 'Cum';
-            LAR.add({
-                itemCode: code,
-                description: desc,
-                value: value,
-                unit: unit,
-                updatedOn: new Date().toISOString().slice(0, 10)
+    if (addBtn) addBtn.addEventListener('click', openAddLarDialog);
+
+    function openAddLarDialog() {
+        var isAdmin = (localStorage.getItem('raiec_role') || '').toUpperCase() === 'ADMIN';
+        var ov = document.createElement('div');
+        ov.className = 'raiec-loader open lar-modal';
+        ov.innerHTML =
+            '<div class="lar-dialog" role="dialog" aria-modal="true" aria-labelledby="larDlgTitle">' +
+              '<button type="button" class="lar-dialog-close" id="larClose" aria-label="Close">&times;</button>' +
+              '<h3 id="larDlgTitle">Add a last accepted rate</h3>' +
+              '<p class="lar-dialog-sub">Use this for work accepted outside RAIEC. The dataset keeps the ' +
+              'lowest rate per item, so a higher rate for an item already held will be refused.</p>' +
+              (isAdmin ? '' : '<p class="lar-dialog-warn">You are signed in as an officer. Only an admin can add rates.</p>') +
+              '<div class="lar-form">' +
+                larField('Description', 'larDesc', 'text', 'What the rate is for — this is what future tenders are matched against', true) +
+                '<div class="lar-form-row">' +
+                  larField('Rate (₹)', 'larRate', 'number', '0.00', true) +
+                  larField('Unit', 'larUnit', 'text', 'cum / sqm / metre / each', false) +
+                '</div>' +
+                '<div class="lar-form-row">' +
+                  larField('Division', 'larDivision', 'text', 'e.g. Bikaner', false) +
+                  larField('Accepted on', 'larDate', 'date', '', false) +
+                '</div>' +
+                larField('Source tender no. (optional)', 'larTender', 'text', 'e.g. 232-25-26', false) +
+              '</div>' +
+              '<p class="lar-dialog-error" id="larError" hidden></p>' +
+              '<div class="lar-dialog-actions">' +
+                '<button type="button" class="td-btn" id="larCancel">Cancel</button>' +
+                '<button type="button" class="td-btn td-btn-primary" id="larSave"' + (isAdmin ? '' : ' disabled') + '>Add rate</button>' +
+              '</div>' +
+            '</div>';
+        document.body.appendChild(ov);
+        document.documentElement.classList.add('modal-open');
+
+        var dateEl = document.getElementById('larDate');
+        if (dateEl) {
+            dateEl.value = new Date().toISOString().slice(0, 10);
+            dateEl.max = dateEl.value;          // a rate cannot be accepted in the future
+        }
+        setTimeout(function () { var d = document.getElementById('larDesc'); if (d) d.focus(); }, 60);
+
+        function close() {
+            ov.classList.remove('open');
+            document.documentElement.classList.remove('modal-open');
+            setTimeout(function () { ov.remove(); }, 260);
+        }
+        document.getElementById('larClose').addEventListener('click', close);
+        document.getElementById('larCancel').addEventListener('click', close);
+        ov.addEventListener('mousedown', function (e) { if (e.target === ov) close(); });
+        document.addEventListener('keydown', function esc(e) {
+            if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
+        });
+
+        var saveBtn = document.getElementById('larSave');
+        if (saveBtn) saveBtn.addEventListener('click', function () {
+            var err = document.getElementById('larError');
+            var body = {
+                description: document.getElementById('larDesc').value.trim(),
+                rate: parseFloat(document.getElementById('larRate').value),
+                unit: document.getElementById('larUnit').value.trim() || null,
+                division: document.getElementById('larDivision').value.trim() || null,
+                sourceTenderNo: document.getElementById('larTender').value.trim() || null,
+                approvedOn: document.getElementById('larDate').value || null
+            };
+
+            // Catch the obvious mistakes here so the officer is not waiting on a round
+            // trip to be told the description is too short.
+            if (body.description.length < 5) {
+                return fail(err, 'Give a description of at least 5 characters — it is what future tenders are matched against.');
+            }
+            if (!(body.rate > 0)) {
+                return fail(err, 'Enter a rate greater than zero.');
+            }
+
+            err.hidden = true;
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving…';
+            fetch(API + '/lar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            }).then(function (res) {
+                return res.json().then(function (b) { return { ok: res.ok, body: b }; });
+            }).then(function (r) {
+                if (!r.ok) throw new Error(r.body && r.body.message ? r.body.message : 'Could not save the rate.');
+                close();
+                reloadLar();                    // show the dataset as it now stands
+            }).catch(function (e) {
+                fail(err, e.message);
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Add rate';
             });
         });
+    }
+
+    function fail(el, msg) {
+        el.hidden = false;
+        el.textContent = msg;
+    }
+
+    function larField(label, id, type, placeholder, required) {
+        return '<label class="lar-field"><span>' + larEscLocal(label) + (required ? ' <b>*</b>' : '') + '</span>' +
+               '<input id="' + id + '" type="' + type + '" placeholder="' + larEscLocal(placeholder) + '"' +
+               (type === 'number' ? ' step="0.01" min="0"' : '') + '></label>';
+    }
+
+    // Re-pull the dataset so the table, KPIs and recent list all agree.
+    function reloadLar() {
+        fetch(API + '/lar')
+            .then(function (r) { return r.json(); })
+            .then(function (list) {
+                var mapped = list.map(function (r) {
+                    return {
+                        itemCode: r.larCode,
+                        description: r.description,
+                        value: r.rate != null ? Number(r.rate) : 0,
+                        unit: r.unit || '',
+                        updatedOn: r.approvedOn || ''
+                    };
+                });
+                if (window.LAR && typeof window.LAR.setData === 'function') {
+                    window.LAR.setData(mapped, mapped.length);
+                }
+                renderLarUpdates(list);
+                var total = document.getElementById('larKpiTotal');
+                if (total) total.textContent = list.length.toLocaleString('en-IN');
+            })
+            .catch(function () { /* leave the current view in place */ });
     }
 
     /* ---------------- KPI count-up ---------------- */
@@ -328,20 +457,48 @@
 
     fetch(API + '/tenders')
         .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(function(list) { allTenders = Array.isArray(list) ? list : []; applyFilters(); })
+        .then(function(list) {
+            allTenders = Array.isArray(list) ? list : [];
+            renderTabs();
+            renderCalendar();
+            wireStatTiles();
+            applyFilters();
+        })
         .catch(function() { /* server offline: keep the static demo rows as a fallback */ });
 
     // ----- Search & filter -----
     function val(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
 
+    // Tab, calendar day and the search fields all narrow the same list, so they live in
+    // one place rather than three competing render paths.
+    var tdTab = 'all';
+    var tdDay = null;
+
+    function tenderDate(t) {
+        var d = t.closingDateTime || t.createdAt;
+        return d ? new Date(d) : null;
+    }
+
     function currentPredicate() {
         var no = val('filterNo').toLowerCase();
         var title = val('filterTitle').toLowerCase();
         var status = val('filterStatus');
+        var from = val('filterFrom');
+        var to = val('filterTo');
         return function(t) {
             if (no && (t.tenderNo || '').toLowerCase().indexOf(no) === -1) return false;
             if (title && (t.nameOfWork || '').toLowerCase().indexOf(title) === -1) return false;
             if (status && status !== 'All Statuses' && mapStatus(t.status).label !== status) return false;
+            if (tdTab !== 'all' && mapStatus(t.status).group !== tdTab) return false;
+
+            if (from || to || tdDay) {
+                var d = tenderDate(t);
+                if (!d) return false;
+                var iso = d.toISOString().slice(0, 10);
+                if (from && iso < from) return false;
+                if (to && iso > to) return false;
+                if (tdDay && iso !== tdDay) return false;
+            }
             return true;
         };
     }
@@ -354,11 +511,207 @@
         var el = document.getElementById(id);
         if (el) el.addEventListener('keydown', function(e) { if (e.key === 'Enter') applyFilters(); });
     });
+    ['filterFrom', 'filterTo'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('change', applyFilters);
+    });
+
     var statusSel = document.getElementById('filterStatus');
     if (statusSel) statusSel.addEventListener('change', applyFilters);
     var resetBtn2 = document.getElementById('resetFilters');
     // The generic reset (other block) clears the inputs; re-render all just after.
     if (resetBtn2) resetBtn2.addEventListener('click', function() { setTimeout(applyFilters, 0); });
+
+
+
+    /* ---------------------------------------------------------------------
+       Status tabs
+       Approve / reject / request-info live here rather than in the upload
+       flow: the upload flow is for one tender at a time, while deciding what
+       still needs attention is a question about the whole queue.
+       ------------------------------------------------------------------- */
+    var TD_TABS = [
+        { key: 'all',        label: 'All' },
+        { key: 'evaluating', label: 'Under evaluation' },
+        { key: 'review',     label: 'Officer review' },
+        { key: 'info',       label: 'Info requested' },
+        { key: 'approved',   label: 'Approved' },
+        { key: 'rejected',   label: 'Rejected' }
+    ];
+
+    function renderTabs() {
+        var host = document.getElementById('tdTabs');
+        if (!host) return;
+        var counts = { all: allTenders.length };
+        allTenders.forEach(function (t) {
+            var g = mapStatus(t.status).group;
+            counts[g] = (counts[g] || 0) + 1;
+        });
+        host.innerHTML = TD_TABS.map(function (tb) {
+            var n = counts[tb.key] || 0;
+            return '<button type="button" class="td-tab' + (tdTab === tb.key ? ' active' : '') +
+                   '" data-tab="' + tb.key + '"' + (tb.key !== 'all' && n === 0 ? ' disabled' : '') + '>' +
+                   esc(tb.label) + '<span class="td-tab-count">' + n + '</span></button>';
+        }).join('');
+        host.querySelectorAll('.td-tab').forEach(function (b) {
+            b.addEventListener('click', function () {
+                tdTab = b.getAttribute('data-tab');
+                tdDay = null;               // a tab choice supersedes a picked day
+                renderTabs();
+                renderCalendar();
+                applyFilters();
+            });
+        });
+    }
+
+    /* ---------------------------------------------------------------------
+       Calendar
+       Shows how much work landed on each day. Density is the point, so the
+       count is what is emphasised; clicking a day filters to it.
+       ------------------------------------------------------------------- */
+    // Opening on the current month is useless when the tenders in hand close months
+    // earlier — the officer would land on an empty grid and have to page backwards to
+    // find their own data. Start on the busiest month that actually has tenders.
+    var tdMonth = new Date();
+    tdMonth.setDate(1);
+    var tdMonthPinned = false;
+
+    function focusCalendarOnData() {
+        if (tdMonthPinned || !allTenders.length) return;
+        var byMonth = {};
+        allTenders.forEach(function (t) {
+            var d = tenderDate(t);
+            if (!d) return;
+            var k = d.getFullYear() + '-' + d.getMonth();
+            byMonth[k] = (byMonth[k] || 0) + 1;
+        });
+        var best = null, bestN = 0;
+        Object.keys(byMonth).forEach(function (k) {
+            if (byMonth[k] > bestN) { bestN = byMonth[k]; best = k; }
+        });
+        if (best) {
+            var parts = best.split('-');
+            tdMonth = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10), 1);
+        }
+        tdMonthPinned = true;   // respect the officer's paging from here on
+    }
+
+    function renderCalendar() {
+        var host = document.getElementById('tdCalendar');
+        if (!host) return;
+        focusCalendarOnData();
+
+        var byDay = {};
+        allTenders.forEach(function (t) {
+            var d = tenderDate(t);
+            if (!d) return;
+            var k = d.toISOString().slice(0, 10);
+            byDay[k] = (byDay[k] || 0) + 1;
+        });
+
+        var year = tdMonth.getFullYear(), month = tdMonth.getMonth();
+        var first = new Date(year, month, 1);
+        var startPad = (first.getDay() + 6) % 7;          // Monday-first
+        var daysInMonth = new Date(year, month + 1, 0).getDate();
+        var maxCount = Math.max.apply(null, [1].concat(Object.keys(byDay).map(function (k) { return byDay[k]; })));
+        var todayIso = new Date().toISOString().slice(0, 10);
+
+        var cells = '';
+        for (var i = 0; i < startPad; i++) cells += '<div class="td-cal-cell is-empty"></div>';
+        for (var day = 1; day <= daysInMonth; day++) {
+            var iso = new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
+            var n = byDay[iso] || 0;
+            // Four steps rather than a continuous scale: the eye reads bands, not gradients.
+            var level = n === 0 ? 0 : Math.min(4, Math.ceil((n / maxCount) * 4));
+            cells += '<button type="button" class="td-cal-cell' +
+                     (tdDay === iso ? ' is-selected' : '') + (iso === todayIso ? ' is-today' : '') +
+                     '" data-level="' + level + '" data-day="' + iso + '"' +
+                     (n === 0 ? ' disabled' : '') +
+                     ' aria-label="' + day + ' \u2014 ' + n + ' tender(s)">' +
+                     '<span class="td-cal-num">' + day + '</span>' +
+                     (n ? '<span class="td-cal-count">' + n + '</span>' : '') +
+                     '</button>';
+        }
+
+        var monthName = tdMonth.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+        host.innerHTML =
+            '<div class="td-cal-head">' +
+              '<button type="button" class="td-cal-nav" id="tdCalPrev" aria-label="Previous month">&#8249;</button>' +
+              '<span class="td-cal-month">' + esc(monthName) + '</span>' +
+              '<button type="button" class="td-cal-nav" id="tdCalNext" aria-label="Next month">&#8250;</button>' +
+            '</div>' +
+            '<div class="td-cal-dow">' + ['M','T','W','T','F','S','S'].map(function (d) {
+                return '<span>' + d + '</span>'; }).join('') + '</div>' +
+            '<div class="td-cal-grid">' + cells + '</div>' +
+            (tdDay ? '<button type="button" class="td-cal-clear" id="tdCalClear">Clear ' + esc(tdDay) + '</button>' : '');
+
+        document.getElementById('tdCalPrev').addEventListener('click', function () {
+            tdMonthPinned = true;
+            tdMonth.setMonth(tdMonth.getMonth() - 1); renderCalendar();
+        });
+        document.getElementById('tdCalNext').addEventListener('click', function () {
+            tdMonthPinned = true;
+            tdMonth.setMonth(tdMonth.getMonth() + 1); renderCalendar();
+        });
+        var clear = document.getElementById('tdCalClear');
+        if (clear) clear.addEventListener('click', function () { tdDay = null; renderCalendar(); applyFilters(); });
+
+        host.querySelectorAll('.td-cal-cell[data-day]').forEach(function (c) {
+            c.addEventListener('click', function () {
+                var d = c.getAttribute('data-day');
+                tdDay = (tdDay === d) ? null : d;    // clicking the same day clears it
+                renderCalendar();
+                applyFilters();
+            });
+        });
+    }
+
+    /* ---------------------------------------------------------------------
+       Stat tiles double as filters
+       The tiles already say how many are in each state; making them inert
+       means reading a number then going elsewhere to act on it.
+       ------------------------------------------------------------------- */
+    function wireStatTiles() {
+        var map = [
+            { sel: '#statTotal',       tab: 'all' },
+            { sel: '#statActive',      tab: 'evaluating' },
+            { sel: '#statUnderReview', tab: 'review' },
+            { sel: '#statInfoReq',     tab: 'info' },
+            { sel: '#statFinalized',   tab: 'approved' },
+            { sel: '#statClosed',      tab: 'rejected' }
+        ];
+        map.forEach(function (m) {
+            var el = document.querySelector(m.sel);
+            var card = el && el.closest('.td-stat-card');
+            if (!card) return;
+            card.classList.add('is-clickable');
+            card.setAttribute('role', 'button');
+            card.setAttribute('tabindex', '0');
+            function go() {
+                tdTab = m.tab; tdDay = null;
+                renderTabs(); renderCalendar(); applyFilters();
+                var table = document.querySelector('.td-table-wrap');
+                if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            card.addEventListener('click', go);
+            card.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+            });
+        });
+    }
+
+    // Row click / keyboard opens the tender.
+    document.addEventListener('click', function (e) {
+        var row = e.target.closest && e.target.closest('.td-row');
+        if (!row || e.target.closest('button')) return;   // let the action buttons work
+        viewTender(row.getAttribute('data-id'));
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        var row = document.activeElement && document.activeElement.closest
+                ? document.activeElement.closest('.td-row') : null;
+        if (row) viewTender(row.getAttribute('data-id'));
+    });
 
     // ----- Export filtered results to CSV -----
     var exportBtn = document.getElementById('exportResultsBtn');
@@ -405,7 +758,9 @@
 
     function rowHtml(t) {
         var st = mapStatus(t.status);
-        return '<tr>' +
+        // The row itself is the target. Hunting for a small eye icon to open a record
+        // is friction the officer pays on every single tender.
+        return '<tr class="td-row" data-id="' + t.id + '" data-group="' + st.group + '" tabindex="0" role="link" aria-label="Open tender ' + esc(t.tenderNo) + '">' +
             '<td class="td-tender-no">' + esc(t.tenderNo) + '</td>' +
             '<td class="td-tender-title">' + esc(t.nameOfWork || '') + '</td>' +
             '<td class="td-cost">' + formatCr(t.advertisedValue) + '</td>' +
@@ -421,14 +776,15 @@
 
     function mapStatus(s) {
         switch (s) {
-            case 'OFFICER_REVIEW': return { label: 'Officer Review', cls: 'td-pill-review' };
-            case 'APPROVED': return { label: 'Finalized', cls: 'td-pill-final' };
-            case 'REJECTED': return { label: 'Closed', cls: 'td-pill-closed' };
+            case 'OFFICER_REVIEW': return { label: 'Officer Review', cls: 'td-pill-review', group: 'review' };
+            case 'INFO_REQUESTED': return { label: 'Info requested', cls: 'td-pill-info', group: 'info' };
+            case 'APPROVED': return { label: 'Approved', cls: 'td-pill-final', group: 'approved' };
+            case 'REJECTED': return { label: 'Rejected', cls: 'td-pill-closed', group: 'rejected' };
             case 'UPLOADED':
             case 'OCR_EXTRACTED':
             case 'RATE_MATCHED':
-            case 'AI_ANALYZED': return { label: 'Under Evaluation', cls: 'td-pill-eval' };
-            default: return { label: s || '—', cls: 'td-pill-open' };
+            case 'AI_ANALYZED': return { label: 'Under Evaluation', cls: 'td-pill-eval', group: 'evaluating' };
+            default: return { label: s || '\u2014', cls: 'td-pill-open', group: 'other' };
         }
     }
 
@@ -486,6 +842,9 @@ function viewTender(id) {
         if (!el) return;
         var target = (val == null ? 0 : Number(val));
         el.setAttribute('data-count', target);
+        // Same reason as setLarKpi: show the figure, then animate. A stat that only
+        // appears once rAF runs is blank in a background tab.
+        el.textContent = target.toLocaleString('en-IN');
         animateStat(el, target, 900);
     }
 
@@ -512,6 +871,7 @@ function viewTender(id) {
         setStat('statActive', s.active);
         setStat('statFinalized', s.finalized);
         setStat('statUnderReview', s.underReview);
+        setStat('statInfoReq', s.infoRequested);
         setStat('statClosed', s.closed);
         renderNotifications(s.recent || []);
     }
@@ -622,10 +982,14 @@ function viewTender(id) {
         if (!el) return;
         var target = (val == null ? 0 : Number(val));
         el.setAttribute('data-count', target);
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            el.textContent = target.toLocaleString('en-IN');
-            return;
-        }
+
+        // Write the real number first, then animate up to it. requestAnimationFrame does
+        // not run in a background tab, so a count-up that starts from the placeholder
+        // leaves the figure showing an em dash until the tab is focused. The number is
+        // the point; the animation is decoration.
+        el.textContent = target.toLocaleString('en-IN');
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
         var start = null;
         function ease(t) { return 1 - Math.pow(1 - t, 3); }
         function step(ts) {
@@ -641,24 +1005,34 @@ function viewTender(id) {
     function renderLarUpdates(list) {
         var box = document.getElementById('larUpdatesList');
         if (!box) return;
-        var sorted = list.slice().sort(function(a, b) {
+
+        // Ten, not five: the panel exists to give a sense of what is arriving in the
+        // dataset, and five entries in a cramped box gave neither detail nor pattern.
+        var sorted = list.slice().sort(function (a, b) {
             return String(b.approvedOn || '').localeCompare(String(a.approvedOn || ''));
-        }).slice(0, 5);
+        }).slice(0, 10);
+
         if (!sorted.length) {
-            box.innerHTML = '<div class="td-notif-item"><div class="td-notif-content"><div class="td-notif-sub">No LAR updates yet.</div></div></div>';
+            box.innerHTML = '<p class="lar-upd-empty">No rates recorded yet. They are added automatically when a tender is approved.</p>';
             return;
         }
-        var dots = ['#34d399', '#60a5fa', '#fbbf24', '#a78bfa', '#22d3ee'];
-        box.innerHTML = sorted.map(function(r, i) {
-            var rate = r.rate != null ? Number(r.rate).toLocaleString('en-IN') : '—';
-            return '<div class="td-notif-item">' +
-                '<div class="td-notif-icon" style="background:rgba(255,255,255,0.04)"><span style="width:10px;height:10px;border-radius:50%;background:' + dots[i % dots.length] + ';display:block"></span></div>' +
-                '<div class="td-notif-content">' +
-                    '<div class="td-notif-title">' + larEsc(larTrunc(r.description || r.larCode, 46)) + '</div>' +
-                    '<div class="td-notif-sub">₹' + rate + (r.unit ? ' / ' + r.unit : '') + '</div>' +
-                '</div>' +
-                '<div class="td-notif-time">' + larDate(r.approvedOn) + '</div>' +
-            '</div>';
+
+        box.innerHTML = sorted.map(function (r) {
+            var rate = r.rate != null ? Number(r.rate).toLocaleString('en-IN') : '\u2014';
+            var src = r.sourceTenderNo ? 'from ' + larEsc(r.sourceTenderNo) : 'added manually';
+            return '<article class="lar-upd">' +
+                     '<div class="lar-upd-main">' +
+                       '<p class="lar-upd-desc" title="' + larEsc(r.description || '') + '">' +
+                         larEsc(larTrunc(r.description || r.larCode, 72)) + '</p>' +
+                       '<p class="lar-upd-meta">' + src +
+                         (r.division ? ' \u00b7 ' + larEsc(r.division) : '') + '</p>' +
+                     '</div>' +
+                     '<div class="lar-upd-side">' +
+                       '<span class="lar-upd-rate">\u20b9' + rate + '</span>' +
+                       '<span class="lar-upd-unit">' + (r.unit ? 'per ' + larEsc(r.unit) : '') + '</span>' +
+                       '<span class="lar-upd-date">' + larDate(r.approvedOn) + '</span>' +
+                     '</div>' +
+                   '</article>';
         }).join('');
     }
 

@@ -56,6 +56,9 @@ public class SecurityConfig {
                         // what a verdict was measured against - but only an admin may change
                         // them, since they apply department-wide.
                         .requestMatchers(HttpMethod.PUT, "/api/settings/**").hasRole("ADMIN")
+                        // A hand-entered rate becomes a benchmark for every future tender,
+                        // so it carries the same weight as one earned through an approval.
+                        .requestMatchers(HttpMethod.POST, "/api/lar").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST,
                                 "/api/tenders/*/approve",
                                 "/api/tenders/*/reject",
