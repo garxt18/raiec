@@ -19,8 +19,6 @@ body {
     min-height: 100vh;
 }
 
-to { opacity: 1; }
-}
 
 /* ===== VIDEO & BACKGROUND ===== */
 .video-bg-wrapper {
@@ -140,7 +138,7 @@ to { opacity: 1; }
     z-index: 1;
     max-width: var(--page-max);
     margin: 0 auto;
-    padding: calc(var(--nav-height) + 40px) 40px 80px;
+    padding: calc(var(--nav-height) + 18px) 40px 64px;
     min-height: 100vh;
 }
 .wf-breadcrumb {
@@ -156,10 +154,10 @@ to { opacity: 1; }
 .wf-breadcrumb a:hover { color: var(--text-secondary); }
 .wf-breadcrumb span { color: var(--text-secondary); }
 .wf-page-title {
-    font-size: 36px;
+    font-size: 34px;
     font-weight: 800;
     color: var(--text-primary);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     letter-spacing: -0.5px;
 }
 .wf-page-subtitle {
@@ -171,84 +169,6 @@ to { opacity: 1; }
 }
 
 /* ===== PROGRESS STEPPER ===== */
-.wf-stepper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-    margin-bottom: 48px;
-    padding: 24px 0;
-}
-.wf-step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    flex: 1;
-    max-width: 160px;
-}
-.wf-step-circle {
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    transition: all 0.3s ease;
-    position: relative;
-    z-index: 2;
-}
-.wf-step.completed .wf-step-circle {
-    background: var(--accent-green);
-    color: #fff;
-}
-.wf-step.active .wf-step-circle {
-    background: var(--accent-blue);
-    color: #fff;
-    box-shadow: 0 0 20px rgba(59,130,246,0.4);
-}
-.wf-step.inactive .wf-step-circle {
-    background: var(--bg-card-light);
-    color: var(--text-muted);
-    border: 2px solid var(--border-color);
-}
-.wf-step-label {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-muted);
-    text-align: center;
-}
-.wf-step.active .wf-step-label {
-    color: var(--accent-blue);
-}
-.wf-step.completed .wf-step-label {
-    color: var(--text-secondary);
-}
-.wf-step-line {
-    position: absolute;
-    top: 20px;
-    left: calc(50% + 24px);
-    width: calc(100% - 48px);
-    height: 2px;
-    background: var(--border-color);
-    z-index: 1;
-}
-.wf-step.completed .wf-step-line {
-    background: var(--accent-green);
-}
-.wf-step:last-child .wf-step-line { display: none; }
-
-/* ===== CARDS & PANELS ===== */
-.wf-card {
-    background: var(--panel-85);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 24px;
-    backdrop-filter: blur(8px);
-    transition: border-color 0.3s ease, transform 0.3s cubic-bezier(0.16,1,0.3,1);
-}
 .wf-card:hover {
     border-color: rgba(59,130,246,0.2);
 }
@@ -992,8 +912,7 @@ to { opacity: 1; }
 }
 @media (max-width: 768px) {
     .wf-stepper { flex-wrap: wrap; gap: 8px; }
-    .wf-step-line { display: none; }
-    .wf-summary-row { grid-template-columns: 1fr 1fr; }
+        .wf-summary-row { grid-template-columns: 1fr 1fr; }
     .wf-form-grid { grid-template-columns: 1fr; }
     .wf-nav-links { display: none; }
     .wf-page-title { font-size: 28px; }
@@ -1002,22 +921,6 @@ to { opacity: 1; }
 @media (max-width: 480px) {
     .wf-summary-row { grid-template-columns: 1fr; }
     .wf-actions { flex-direction: column; }
-}
-
-/* ===== STEPPER ANIMATION ===== */
-.wf-step-circle {
-    transition: background 0.4s ease, box-shadow 0.4s ease, transform 0.3s ease;
-}
-.wf-step.completed .wf-step-circle {
-    animation: stepComplete 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes stepComplete {
-    0% { transform: scale(0.8); opacity: 0.5; }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); opacity: 1; }
-}
-.wf-step-line {
-    transition: background 0.5s ease;
 }
 
 /* ===== ACTIVE NAV ===== */
@@ -1064,7 +967,7 @@ to { opacity: 1; }
     align-items: flex-start;
     gap: 8px;
     max-width: 860px;
-    margin: 44px auto 52px;
+    margin: 22px auto 30px;
     padding: 0 8px;
 }
 
@@ -1897,4 +1800,47 @@ body.wf-leaving .wf-navbar { opacity: 1; }
     width: 1px;
     height: 22px;
     background: var(--border-strong);
+}
+
+/* =============================================================================
+   Step 4 — AI assessment panel
+   This is the page's headline finding, so it needs to sit forward of the page
+   rather than beside it. It was styled inline with a fixed dark panel, which in
+   light mode rendered as a grey box on a white card.
+   ============================================================================= */
+
+.wf-ai-assess {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--accent-blue);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin: 6px 0 24px;
+    box-shadow: var(--shadow-sm);
+}
+
+.wf-ai-assess-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.wf-ai-assess-title {
+    margin: 0;
+    font-size: 18px;
+}
+
+.wf-ai-assess-source {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.wf-ai-assess-text {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 14.5px;
+    line-height: 1.65;
 }
