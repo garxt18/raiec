@@ -12,14 +12,12 @@
       ]
     },
     {
-      "comment": "config.js decides which backend to call, so it must never be served stale from cache.",
       "source": "/config.js",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
       ]
     },
     {
-      "comment": "Hashless asset names mean a long cache would pin users to old code after a deploy.",
       "source": "/(.*).(js|css)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
