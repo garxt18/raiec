@@ -8,58 +8,56 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * A tenderer quotes one common percentage against the schedule - "AT Par", "(+) 8.50" or
- * "(-) 3.20" - and that percentage is loaded onto the rate-book rate to give the rate actually
- * payable. Variance must be measured against that escalated rate, otherwise every item in an
- * escalated schedule reads as over-quoted by exactly the escalation percentage.
+ * Escalation applies to the SCHEDULE TOTAL, not to individual unit rates.
+ *
+ * <p>In an IREPS tender the item breakup's unit rates sum to the schedule's Basic Value, and the
+ * quoted percentage ("AT Par", "(+) 8.50", "(-) 38.00") is then applied once to that total to give
+ * the Amount payable. Verified against tender 232-25-26, Schedule A:
+ *
+ * <pre>
+ *   Basic Value 2,867,651.45  ×  (1 - 38%)  =  Amount 1,777,943.90
+ * </pre>
+ *
+ * <p>Because the breakup unit rate and the rate-book rate are BOTH pre-escalation figures, per-item
+ * variance compares them directly. Applying the percentage to only the reference side is a bug: on
+ * this tender it turned 107 of 119 correctly-priced items into false FAILs, because a rate quoted
+ * ~7% below the DSR book rate was being measured against a reference cut by 38%.
  */
 class EscalationTest {
 
-    private static void assertRate(String expected, BigDecimal actual) {
+    private static void assertMoney(String expected, BigDecimal actual) {
         assertEquals(0, new BigDecimal(expected).compareTo(actual),
                 "expected " + expected + " but was " + actual);
     }
 
     @Test
-    void positiveEscalationRaisesTheAcceptableRate() {
-        // 1000.00 quoted at (+) 8.50  ->  1085.00 is acceptable
-        assertRate("1085.00", RateMatchService.applyEscalation(
-                new BigDecimal("1000.00"), new BigDecimal("8.50")));
+    void negativePercentageReducesTheScheduleTotal() {
+        // Tender 232-25-26 Schedule A, the real figures from the document.
+        assertMoney("1777943.90", RateMatchService.applyEscalation(
+                new BigDecimal("2867651.45"), new BigDecimal("-38.00")));
     }
 
     @Test
-    void negativeEscalationLowersTheAcceptableRate() {
-        // 1000.00 quoted at (-) 3.20  ->  968.00 is acceptable
-        assertRate("968.00", RateMatchService.applyEscalation(
-                new BigDecimal("1000.00"), new BigDecimal("-3.20")));
+    void positivePercentageRaisesTheScheduleTotal() {
+        assertMoney("1085000.00", RateMatchService.applyEscalation(
+                new BigDecimal("1000000.00"), new BigDecimal("8.50")));
     }
 
     @Test
-    void atParLeavesTheBookRateUnchanged() {
-        // "AT Par" is parsed as 0%, meaning exactly the schedule rate.
-        assertRate("7780.30", RateMatchService.applyEscalation(
-                new BigDecimal("7780.30"), BigDecimal.ZERO));
+    void atParLeavesTheTotalUnchanged() {
+        // "AT Par" is parsed as 0%: exactly the schedule value, no loading either way.
+        assertMoney("62490.80", RateMatchService.applyEscalation(
+                new BigDecimal("62490.80"), BigDecimal.ZERO));
     }
 
     @Test
-    void missingEscalationLeavesTheBookRateUnchanged() {
-        assertRate("7780.30", RateMatchService.applyEscalation(
-                new BigDecimal("7780.30"), null));
+    void missingPercentageLeavesTheTotalUnchanged() {
+        assertMoney("62490.80", RateMatchService.applyEscalation(
+                new BigDecimal("62490.80"), null));
     }
 
     @Test
-    void noReferenceRateStaysNull() {
-        assertNull(RateMatchService.applyEscalation(null, new BigDecimal("8.50")));
-    }
-
-    @Test
-    void anItemAtTheEscalatedRateIsNotOverQuoted() {
-        // Regression: before escalation was applied, a rate quoted exactly at book + 8.5%
-        // was reported as +8.5% variance and flagged WARN. It should now be 0%.
-        BigDecimal book = new BigDecimal("1000.00");
-        BigDecimal quoted = new BigDecimal("1085.00");
-        BigDecimal effective = RateMatchService.applyEscalation(book, new BigDecimal("8.50"));
-        assertEquals(0, quoted.compareTo(effective),
-                "a rate quoted exactly at the escalated schedule rate must show no variance");
+    void nullTotalStaysNull() {
+        assertNull(RateMatchService.applyEscalation(null, new BigDecimal("-38.00")));
     }
 }

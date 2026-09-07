@@ -372,20 +372,15 @@ function renderRateMatch(d) {
     }).join('');
 }
 
-// Reference column: the published rate, the escalated rate actually acceptable under this
-// tender's quoted percentage (only when it differs), and where the reference came from.
+// Reference column: the published rate and where it came from. Rates are compared
+// pre-escalation on both sides, so no escalated figure is shown here — the tender's
+// percentage applies to the schedule total, not to individual unit rates.
 function buildRefCell(it) {
     if (it.referenceRate == null) {
         return it.source === 'NS' ? '<span style="color:#94a3b8">no prior rate</span>' : '—';
     }
     var html = formatNum(it.referenceRate);
 
-    if (it.effectiveReferenceRate != null && Number(it.effectiveReferenceRate) !== Number(it.referenceRate)) {
-        var pct = Number(it.escalationPct);
-        var sign = pct > 0 ? '+' : '';
-        html += '<br><span style="font-size:11px;color:#cbd5e1">&rarr; ' + formatNum(it.effectiveReferenceRate)
-             + ' <span style="color:#94a3b8">(' + sign + pct + '% escalation)</span></span>';
-    }
     if (it.referenceSource) {
         var colour = it.referenceStale ? '#fbbf24' : '#94a3b8';
         html += '<br><span style="font-size:11px;color:' + colour + '">'

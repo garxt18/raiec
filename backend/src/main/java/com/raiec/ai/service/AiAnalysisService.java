@@ -84,9 +84,7 @@ public class AiAnalysisService {
                 if (it.referenceStale()) {
                     stale++;
                 }
-                BigDecimal benchmark = it.effectiveReferenceRate() != null
-                        ? it.effectiveReferenceRate() : it.referenceRate();
-                if (it.tenderRate() != null && it.tenderRate().compareTo(benchmark) > 0) {
+                if (it.tenderRate() != null && it.tenderRate().compareTo(it.referenceRate()) > 0) {
                     aboveLowest++;
                 }
             }

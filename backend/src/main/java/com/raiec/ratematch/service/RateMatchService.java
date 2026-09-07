@@ -255,14 +255,13 @@ public class RateMatchService {
                                    BigDecimal qty, String unit, BigDecimal tenderRate, BigDecimal amount,
                                    BigDecimal referenceRate, String referenceSource,
                                    BigDecimal escl, boolean atPar, boolean stale) {
-        BigDecimal effectiveRef = applyEscalation(referenceRate, escl);
         BigDecimal variance = null;
         String status;
-        if (effectiveRef == null || effectiveRef.signum() == 0) {
+        if (referenceRate == null || referenceRate.signum() == 0) {
             status = "NO_REFERENCE";
         } else {
-            variance = tenderRate.subtract(effectiveRef)
-                    .divide(effectiveRef, 6, RoundingMode.HALF_UP)
+            variance = tenderRate.subtract(referenceRate)
+                    .divide(referenceRate, 6, RoundingMode.HALF_UP)
                     .multiply(HUNDRED)
                     .setScale(2, RoundingMode.HALF_UP);
             // Directional: a rate at or below the reference is acceptable (cheaper is good).
@@ -272,21 +271,21 @@ public class RateMatchService {
             else status = "OK";
         }
         return new RateMatchItem(schedule, code, desc, source, qty, unit, tenderRate, amount,
-                referenceRate, effectiveRef, referenceSource, escl, atPar, stale, variance, status);
+                referenceRate, referenceSource, escl, atPar, stale, variance, status);
     }
 
     /**
-     * Applies the tender's quoted percentage to a reference rate. A tenderer quotes one common
-     * percentage against the schedule — "AT Par" (exactly the schedule rate), "(+) 8.50" (8.5%
-     * above) or "(-) 3.20" (3.2% below) — and that percentage is loaded onto the book rate to get
-     * the rate actually payable. Comparing a quoted rate against the raw book rate without this
-     * would report every escalated item as over-quoted by the escalation percentage.
+     * The schedule total after the tender's quoted percentage is applied, i.e. what is actually
+     * payable. Escalation belongs at this level and NOT to individual unit rates: in an IREPS
+     * tender the item breakup rates sum to the schedule's Basic Value, and the percentage is then
+     * applied once to that total to give the Amount. Since the breakup rate and the rate-book rate
+     * are both pre-escalation figures, per-item variance compares them directly.
      */
-    static BigDecimal applyEscalation(BigDecimal referenceRate, BigDecimal escl) {
-        if (referenceRate == null) return null;
-        if (escl == null || escl.signum() == 0) return referenceRate;
+    static BigDecimal applyEscalation(BigDecimal basicValue, BigDecimal escl) {
+        if (basicValue == null) return null;
+        if (escl == null || escl.signum() == 0) return basicValue;
         BigDecimal factor = BigDecimal.ONE.add(escl.divide(HUNDRED, 6, RoundingMode.HALF_UP));
-        return referenceRate.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+        return basicValue.multiply(factor).setScale(2, RoundingMode.HALF_UP);
     }
 
     private static String normalize(String s) {
