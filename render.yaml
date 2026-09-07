@@ -11,7 +11,9 @@ services:
     dockerContext: ./backend
     plan: free
     region: singapore          # closest Render region to India
-    healthCheckPath: /api/auth/me   # returns 401 unauthenticated, which still proves the app is up
+    # Must return 2xx. /api/auth/me returns 401 without a token, which Render reads as
+    # unhealthy and the deploy times out even though the app started correctly.
+    healthCheckPath: /api/health
     envVars:
       # JDBC URL for the Neon database, in the form:
       #   jdbc:postgresql://<host>/<db>?user=<user>&password=<pw>&sslmode=require

@@ -18,6 +18,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  *
  * <ul>
  *   <li>{@code /api/auth/**} — public (login).</li>
+ *   <li>{@code /api/health} — public. The hosting platform's health check treats any
+ *       non-2xx as unhealthy, so this cannot require a token.</li>
  *   <li>{@code /api/reference/import/**} — ADMIN only (manage rate books).</li>
  *   <li>{@code POST /api/tenders/*&#47;approve|reject|send-to-review} — OFFICER or ADMIN.</li>
  *   <li>everything else under {@code /api/**} — any authenticated user.</li>
@@ -49,7 +51,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/**", "/error").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/health", "/error").permitAll()
                         .requestMatchers("/api/reference/import/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // Anyone signed in may READ the thresholds - the officer needs to see
