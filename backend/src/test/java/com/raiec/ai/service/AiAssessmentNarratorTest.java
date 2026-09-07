@@ -18,7 +18,7 @@ class AiAssessmentNarratorTest {
     private RateMatchItem item(String desc, String status, String variance) {
         return new RateMatchItem("A", "C-1", desc, "DSR",
                 new BigDecimal("10"), "cum", new BigDecimal("100"), new BigDecimal("1000"),
-                new BigDecimal("87"), "DSR 2023", BigDecimal.ZERO, true,
+                new BigDecimal("87"), new BigDecimal("87"), "DSR 2023", BigDecimal.ZERO, true, false,
                 variance == null ? null : new BigDecimal(variance), status);
     }
 

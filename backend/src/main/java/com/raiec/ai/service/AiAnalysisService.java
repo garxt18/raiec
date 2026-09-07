@@ -73,25 +73,34 @@ public class AiAnalysisService {
         return new AiCheck("PS-01", "Manual rate checking", "PASS", d);
     }
 
-    /** PS-02: NS items quoted above the lowest accepted LAR rate. */
+    /** PS-02: NS items quoted above the lowest accepted LAR rate, and stale LAR references. */
     private AiCheck larLowestRate(RateMatchResponse rm) {
         int aboveLowest = 0;
         int nsMatched = 0;
+        int stale = 0;
         for (RateMatchItem it : rm.items()) {
             if ("NS".equals(it.source()) && it.referenceRate() != null) {
                 nsMatched++;
-                if (it.tenderRate() != null && it.tenderRate().compareTo(it.referenceRate()) > 0) {
+                if (it.referenceStale()) {
+                    stale++;
+                }
+                BigDecimal benchmark = it.effectiveReferenceRate() != null
+                        ? it.effectiveReferenceRate() : it.referenceRate();
+                if (it.tenderRate() != null && it.tenderRate().compareTo(benchmark) > 0) {
                     aboveLowest++;
                 }
             }
         }
+        String staleNote = stale > 0
+                ? " " + stale + " reference(s) are older than 12 months and may be out of date."
+                : "";
         if (aboveLowest > 0) {
             return new AiCheck("PS-02", "LAR recency & lowest-rate", "WARN",
-                    aboveLowest + " NS item(s) quoted above the lowest accepted LAR rate.");
+                    aboveLowest + " NS item(s) quoted above the lowest accepted LAR rate." + staleNote);
         }
         if (nsMatched > 0) {
-            return new AiCheck("PS-02", "LAR recency & lowest-rate", "PASS",
-                    "All matched NS items are at or below the lowest accepted LAR rate.");
+            return new AiCheck("PS-02", "LAR recency & lowest-rate", stale > 0 ? "WARN" : "PASS",
+                    "All matched NS items are at or below the lowest accepted LAR rate." + staleNote);
         }
         return new AiCheck("PS-02", "LAR recency & lowest-rate", "PASS",
                 "No NS items matched the LAR dataset yet.");

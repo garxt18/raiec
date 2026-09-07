@@ -28,6 +28,26 @@ public class DsrImporter {
     private static final Pattern CODE_LINE = Pattern.compile("^(\\d+\\.\\d+(?:\\.\\d+)*[A-Z]{0,2})\\s+(.*)$");
     private static final Pattern NUMERIC = Pattern.compile("^[\\d,]+(\\.\\d+)?$");
 
+    /**
+     * Chapter marker, e.g. "SUB HEAD : 4.0". Work items only ever appear inside one of these,
+     * and their code always starts with that chapter number. Everything before the first marker
+     * is front matter and the Basic Rates tables, which are not work items.
+     */
+    private static final Pattern SUB_HEAD = Pattern.compile("^SUB\\s*HEAD\\s*:\\s*(\\d+)\\.0", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Units that actually occur in the rate books, with an optional leading count ("10 Nos",
+     * "100 metre"). A row whose unit does not look like this is a mis-parsed table line —
+     * typically a carriage/lead table where the last two columns are money, not unit+rate.
+     */
+    private static final Pattern UNIT_OK = Pattern.compile(
+            "^(?:\\d{1,4}(?:\\.\\d+)?\\s+)?"
+            + "(cum|sqm|sqcm|smt|metre|meter|rmt|rm|trm|km|cm|mm|m|100m"
+            + "|each|no|nos|number|pair|dozen|set|bag|roll|sheet|point|job"
+            + "|kg|quintal|qtl|tonne|ton|mt|litre|liter|ltr"
+            + "|day|hour|shift|night|joint|sleeper|erc)$",
+            Pattern.CASE_INSENSITIVE);
+
     private final PdfTextExtractor extractor;
 
     public DsrImporter(PdfTextExtractor extractor) {
@@ -43,13 +63,26 @@ public class DsrImporter {
         Set<String> seen = new HashSet<>();
         String code = null;
         StringBuilder acc = null;
+        String chapter = null;
 
         for (String raw : text.split("\\r?\\n")) {
             String t = raw.replace('\u00A0', ' ').replace('\u2007', ' ').replace('\u202F', ' ').trim();
+
+            Matcher sh = SUB_HEAD.matcher(t);
+            if (sh.find()) {
+                finalize(code, acc, items, seen, edition);
+                code = null;
+                acc = null;
+                chapter = sh.group(1);
+                continue;
+            }
             if (isArtifact(t)) continue;
 
+            // A code line only starts a new item inside a chapter, and only when its own chapter
+            // matches. Otherwise it is wrapped description text that happens to begin with a
+            // number (e.g. the continuation line "7.75 kg/sqm"), so it belongs to the current item.
             Matcher m = CODE_LINE.matcher(t);
-            if (m.find()) {
+            if (m.find() && chapter != null && chapter.equals(chapterOf(m.group(1)))) {
                 finalize(code, acc, items, seen, edition);
                 code = m.group(1);
                 acc = new StringBuilder(m.group(2).trim());
@@ -65,6 +98,7 @@ public class DsrImporter {
         if (code == null || acc == null) return;
         Tail tail = parseTail(acc.toString());
         if (tail == null) return;          // heading row (no rate)
+        if (!UNIT_OK.matcher(tail.unit()).matches()) return;  // mis-parsed table row, not an item
         if (!seen.add(code)) return;       // duplicate (e.g. Hindi translation) - keep first
         items.add(DsrItem.builder()
                 .itemCode(code)

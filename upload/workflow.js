@@ -357,6 +357,7 @@ function renderRateMatch(d) {
             vTxt = '—';
         }
         var st = it.status === 'OK' ? 'ok' : (it.status === 'WARN' ? 'warn' : (it.status === 'FAIL' ? 'fail' : 'noref'));
+        var refCell = buildRefCell(it);
         return '<tr data-status="' + st + '">' +
             '<td>' + escapeHtml(truncateRm(it.description || it.itemCode, 64)) + '</td>' +
             '<td>' + escapeHtml(it.source || '') + '</td>' +
@@ -364,11 +365,33 @@ function renderRateMatch(d) {
             '<td>' + escapeHtml(it.unit || '—') + '</td>' +
             '<td>' + formatNum(it.tenderRate) + '</td>' +
             '<td>' + (it.amount != null ? formatNum(it.amount) : '—') + '</td>' +
-            '<td>' + (it.referenceRate != null ? (formatNum(it.referenceRate) + (it.referenceSource ? '<br><span style="font-size:11px;color:#94a3b8">' + escapeHtml(it.referenceSource) + '</span>' : '')) : (it.source === 'NS' ? '<span style="color:#94a3b8">no prior rate</span>' : '—')) + '</td>' +
+            '<td>' + refCell + '</td>' +
             '<td class="' + vCls + '">' + vTxt + '</td>' +
             '<td>' + rmStatusBadge(it.status, it.source) + '</td>' +
         '</tr>';
     }).join('');
+}
+
+// Reference column: the published rate, the escalated rate actually acceptable under this
+// tender's quoted percentage (only when it differs), and where the reference came from.
+function buildRefCell(it) {
+    if (it.referenceRate == null) {
+        return it.source === 'NS' ? '<span style="color:#94a3b8">no prior rate</span>' : '—';
+    }
+    var html = formatNum(it.referenceRate);
+
+    if (it.effectiveReferenceRate != null && Number(it.effectiveReferenceRate) !== Number(it.referenceRate)) {
+        var pct = Number(it.escalationPct);
+        var sign = pct > 0 ? '+' : '';
+        html += '<br><span style="font-size:11px;color:#cbd5e1">&rarr; ' + formatNum(it.effectiveReferenceRate)
+             + ' <span style="color:#94a3b8">(' + sign + pct + '% escalation)</span></span>';
+    }
+    if (it.referenceSource) {
+        var colour = it.referenceStale ? '#fbbf24' : '#94a3b8';
+        html += '<br><span style="font-size:11px;color:' + colour + '">'
+             + (it.referenceStale ? '⚠ ' : '') + escapeHtml(it.referenceSource) + '</span>';
+    }
+    return html;
 }
 
 function rmStatusBadge(s, source) {
