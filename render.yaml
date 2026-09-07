@@ -28,6 +28,16 @@ services:
       # e.g. https://raiec.vercel.app
       - key: RAIEC_CORS_ORIGINS
         sync: false
+      # The two accounts seeded on first boot. Without these the deployment ships
+      # with admin/admin@123, which is published in this repository.
+      - key: RAIEC_SEED_ADMIN_USERNAME
+        sync: false
+      - key: RAIEC_SEED_ADMIN_PASSWORD
+        sync: false
+      - key: RAIEC_SEED_OFFICER_USERNAME
+        sync: false
+      - key: RAIEC_SEED_OFFICER_PASSWORD
+        sync: false
       # Optional: enables the real LLM assessment instead of the rule-based fallback.
       - key: RAIEC_LLM_API_KEY
         sync: false
