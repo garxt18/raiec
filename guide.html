@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="theme.css">
     <style>
         :root {
             --bg: #07071a;
@@ -211,6 +212,15 @@
             html { scroll-behavior: auto; }
         }
     </style>
+    <script>
+        // Applied before first paint so the page never flashes the wrong theme.
+        (function () {
+            try {
+                var t = localStorage.getItem('raiec_theme');
+                if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+            } catch (e) { /* storage blocked: fall back to prefers-color-scheme */ }
+        })();
+    </script>
 </head>
 <body>
     <div class="g-bg" aria-hidden="true">
@@ -391,6 +401,7 @@
     </section>
 
     <script src="config.js"></script>
+    <script src="ui.js"></script>
     <script src="auth.js"></script>
     <script>
         (function () {

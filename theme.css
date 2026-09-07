@@ -1,0 +1,618 @@
+/* ==========================================================================
+   RAIEC design tokens — single source of truth for colour, in both themes.
+
+   Loaded before every other stylesheet. Page stylesheets should reference these
+   variables rather than literal colours, so a theme switch needs no other change.
+
+   Theme resolution:
+     :root                     -> dark (the product's default look)
+     :root[data-theme="light"] -> light, chosen explicitly
+     prefers-color-scheme      -> honoured only when the user has not chosen,
+                                  guarded by :not([data-theme])
+   ========================================================================== */
+
+:root {
+    color-scheme: dark;
+
+    /* --- Surfaces, darkest to lightest --- */
+    --bg-primary: #0a0a1a;
+    --bg-secondary: #0d1117;
+    --bg-card: #111827;
+    --bg-card-light: #1a1f2e;
+    --bg-elevated: #1e2536;
+    --bg-inset: rgba(0, 0, 0, 0.25);
+
+    /* Translucent overlays layered on top of a surface. In dark these lighten,
+       in light they darken — which is why they must be tokens, not literals. */
+    --surface-1: rgba(255, 255, 255, 0.04);
+    --surface-2: rgba(255, 255, 255, 0.08);
+    --surface-3: rgba(255, 255, 255, 0.12);
+    --surface-hover: rgba(255, 255, 255, 0.06);
+
+
+    /* Translucent panels. These sit over the video background, so the alpha is
+       part of the design and cannot be flattened to a solid colour. */
+    --panel-40: rgba(30, 41, 59, 0.40);
+    --panel-50: rgba(30, 41, 59, 0.50);
+    --panel-60: rgba(30, 41, 59, 0.60);
+    --panel-72: rgba(18, 22, 43, 0.72);
+    --panel-85: rgba(17, 24, 39, 0.85);
+    --panel-90: rgba(17, 24, 39, 0.90);
+
+    /* --- Text --- */
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --text-inverse: #0f172a;
+
+    /* --- Lines and depth --- */
+    --border-color: #1e293b;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --border-glow: rgba(139, 92, 246, 0.3);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.45);
+    --shadow-glow: 0 0 40px rgba(139, 92, 246, 0.15), 0 0 80px rgba(59, 130, 246, 0.1);
+
+    /* --- Brand accents --- */
+    --accent-blue: #3b82f6;
+    --accent-blue-bright: #60a5fa;
+    --accent-cyan: #06b6d4;
+    --accent-cyan-bright: #22d3ee;
+    --accent-violet: #8b5cf6;
+    --accent-violet-bright: #a78bfa;
+    --accent-purple: #7c3aed;
+
+    /* --- Status. Semantic: these carry meaning, never decoration. --- */
+    --accent-green: #10b981;
+    --accent-green-bright: #34d399;
+    --accent-orange: #f59e0b;
+    --accent-orange-bright: #fbbf24;
+    --accent-red: #ef4444;
+    --accent-red-bright: #f87171;
+
+    /* Tinted status backgrounds (badges, row highlights). */
+    --tint-green: rgba(16, 185, 129, 0.15);
+    --tint-orange: rgba(245, 158, 11, 0.15);
+    --tint-red: rgba(239, 68, 68, 0.15);
+    --tint-blue: rgba(59, 130, 246, 0.15);
+    --tint-violet: rgba(139, 92, 246, 0.15);
+
+    /* --- Navigation: frosted glass over whatever is behind it --- */
+    --nav-bg: rgba(18, 22, 42, 0.55);
+    --nav-bg-scrolled: rgba(14, 17, 33, 0.78);
+    --nav-border: rgba(255, 255, 255, 0.10);
+    --nav-blur: saturate(180%) blur(18px);
+
+    /* --- Modal / overlay --- */
+    --overlay-bg: rgba(5, 5, 20, 0.7);
+    --modal-bg: rgba(13, 17, 30, 0.94);
+
+    /* --- Geometry (theme-independent, kept here so tokens live in one file) --- */
+    --nav-height: 60px;
+    --radius-sm: 8px;
+    --radius-md: 18px;
+    --radius-lg: 24px;
+
+    /* --- Layout width. Pages were squeezed into a narrow column; these widen it. --- */
+    --page-max: 1600px;
+    --page-pad: 40px;
+    --page-pad-sm: 20px;
+
+    /* --- Motion --- */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur-fast: 140ms;
+    --dur-mid: 260ms;
+    --dur-slow: 420ms;
+}
+
+/* ==========================================================================
+   LIGHT THEME
+   Surfaces invert, overlays flip from white-on-dark to black-on-light, and
+   accents darken just enough to stay legible on white.
+   ========================================================================== */
+
+:root[data-theme="light"] {
+    color-scheme: light;
+
+    --bg-primary: #f4f7fb;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-light: #f1f5f9;
+    --bg-elevated: #ffffff;
+    --bg-inset: rgba(15, 23, 42, 0.04);
+
+    --surface-1: rgba(15, 23, 42, 0.03);
+    --surface-2: rgba(15, 23, 42, 0.06);
+    --surface-3: rgba(15, 23, 42, 0.10);
+    --surface-hover: rgba(15, 23, 42, 0.05);
+
+
+    --panel-40: rgba(255, 255, 255, 0.55);
+    --panel-50: rgba(255, 255, 255, 0.66);
+    --panel-60: rgba(255, 255, 255, 0.74);
+    --panel-72: rgba(255, 255, 255, 0.82);
+    --panel-85: rgba(255, 255, 255, 0.92);
+    --panel-90: rgba(255, 255, 255, 0.96);
+
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --text-inverse: #ffffff;
+
+    --border-color: #e2e8f0;
+    --border-subtle: rgba(15, 23, 42, 0.10);
+    --border-strong: rgba(15, 23, 42, 0.18);
+    --border-glow: rgba(124, 58, 237, 0.28);
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+    --shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.12);
+    --shadow-glow: 0 4px 24px rgba(59, 130, 246, 0.10);
+
+    /* Darkened so text and icons in these colours pass contrast on white. */
+    --accent-blue: #2563eb;
+    --accent-blue-bright: #3b82f6;
+    --accent-cyan: #0891b2;
+    --accent-cyan-bright: #06b6d4;
+    --accent-violet: #7c3aed;
+    --accent-violet-bright: #8b5cf6;
+    --accent-purple: #6d28d9;
+
+    --accent-green: #059669;
+    --accent-green-bright: #10b981;
+    --accent-orange: #d97706;
+    --accent-orange-bright: #f59e0b;
+    --accent-red: #dc2626;
+    --accent-red-bright: #ef4444;
+
+    --tint-green: rgba(5, 150, 105, 0.12);
+    --tint-orange: rgba(217, 119, 6, 0.12);
+    --tint-red: rgba(220, 38, 38, 0.12);
+    --tint-blue: rgba(37, 99, 235, 0.10);
+    --tint-violet: rgba(124, 58, 237, 0.10);
+
+    --nav-bg: rgba(255, 255, 255, 0.68);
+    --nav-bg-scrolled: rgba(255, 255, 255, 0.86);
+    --nav-border: rgba(15, 23, 42, 0.10);
+
+    --overlay-bg: rgba(15, 23, 42, 0.42);
+    --modal-bg: rgba(255, 255, 255, 0.97);
+}
+
+/* Follow the OS only while the user has not made an explicit choice. */
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme]) {
+        color-scheme: light;
+
+        --bg-primary: #f4f7fb;
+        --bg-secondary: #ffffff;
+        --bg-card: #ffffff;
+        --bg-card-light: #f1f5f9;
+        --bg-elevated: #ffffff;
+        --bg-inset: rgba(15, 23, 42, 0.04);
+
+        --surface-1: rgba(15, 23, 42, 0.03);
+        --surface-2: rgba(15, 23, 42, 0.06);
+        --surface-3: rgba(15, 23, 42, 0.10);
+        --surface-hover: rgba(15, 23, 42, 0.05);
+
+    
+    --panel-40: rgba(255, 255, 255, 0.55);
+    --panel-50: rgba(255, 255, 255, 0.66);
+    --panel-60: rgba(255, 255, 255, 0.74);
+    --panel-72: rgba(255, 255, 255, 0.82);
+    --panel-85: rgba(255, 255, 255, 0.92);
+    --panel-90: rgba(255, 255, 255, 0.96);
+
+    --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #64748b;
+        --text-inverse: #ffffff;
+
+        --border-color: #e2e8f0;
+        --border-subtle: rgba(15, 23, 42, 0.10);
+        --border-strong: rgba(15, 23, 42, 0.18);
+        --border-glow: rgba(124, 58, 237, 0.28);
+        --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+        --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+        --shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.12);
+        --shadow-glow: 0 4px 24px rgba(59, 130, 246, 0.10);
+
+        --accent-blue: #2563eb;
+        --accent-blue-bright: #3b82f6;
+        --accent-cyan: #0891b2;
+        --accent-cyan-bright: #06b6d4;
+        --accent-violet: #7c3aed;
+        --accent-violet-bright: #8b5cf6;
+        --accent-purple: #6d28d9;
+
+        --accent-green: #059669;
+        --accent-green-bright: #10b981;
+        --accent-orange: #d97706;
+        --accent-orange-bright: #f59e0b;
+        --accent-red: #dc2626;
+        --accent-red-bright: #ef4444;
+
+        --tint-green: rgba(5, 150, 105, 0.12);
+        --tint-orange: rgba(217, 119, 6, 0.12);
+        --tint-red: rgba(220, 38, 38, 0.12);
+        --tint-blue: rgba(37, 99, 235, 0.10);
+        --tint-violet: rgba(124, 58, 237, 0.10);
+
+        --nav-bg: rgba(255, 255, 255, 0.68);
+        --nav-bg-scrolled: rgba(255, 255, 255, 0.86);
+        --nav-border: rgba(15, 23, 42, 0.10);
+
+        --overlay-bg: rgba(15, 23, 42, 0.42);
+        --modal-bg: rgba(255, 255, 255, 0.97);
+    }
+}
+
+/* ==========================================================================
+   Cross-theme base
+   ========================================================================== */
+
+html {
+    background: var(--bg-primary);
+}
+
+/* Recolouring every surface at once looks broken unless the change is eased.
+   Suppressed during the switch itself (see .theme-switching) so the toggle
+   feels instant rather than sluggish. */
+body,
+.navbar,
+.td-card,
+.wf-card,
+.panel,
+.feature-card {
+    transition: background-color var(--dur-mid) var(--ease-out),
+                border-color var(--dur-mid) var(--ease-out),
+                color var(--dur-mid) var(--ease-out);
+}
+
+.theme-switching,
+.theme-switching * {
+    transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ==========================================================================
+   Frosted navigation
+   ========================================================================== */
+
+.navbar,
+.wf-navbar,
+.td-nav,
+.td-navbar {
+    background: var(--nav-bg) !important;
+    -webkit-backdrop-filter: var(--nav-blur);
+    backdrop-filter: var(--nav-blur);
+    border-bottom: 1px solid var(--nav-border);
+    /* Confines repaints to the bar itself while the page scrolls behind it. */
+    contain: paint;
+}
+
+.navbar.scrolled,
+.wf-navbar.scrolled,
+.td-nav.scrolled,
+.td-navbar.scrolled {
+    background: var(--nav-bg-scrolled) !important;
+    box-shadow: var(--shadow-md);
+}
+
+/* In light mode the logo and links sit on a near-white bar. */
+:root[data-theme="light"] .nav-link,
+:root[data-theme="light"] .navbar .logo-text,
+:root[data-theme="light"] .wf-nav-brand,
+:root[data-theme="light"] .td-nav-menu a {
+    color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Theme toggle control
+   ========================================================================== */
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-1);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: background var(--dur-fast) var(--ease-out),
+                color var(--dur-fast) var(--ease-out),
+                transform var(--dur-fast) var(--ease-spring),
+                border-color var(--dur-fast) var(--ease-out);
+}
+
+.theme-toggle:hover {
+    background: var(--surface-2);
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+}
+
+.theme-toggle:active {
+    transform: scale(0.92);
+}
+
+.theme-toggle:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+.theme-toggle svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Show the icon for the theme you would switch TO. */
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+:root[data-theme="light"] .theme-toggle .icon-sun { display: block; }
+:root[data-theme="light"] .theme-toggle .icon-moon { display: none; }
+
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme]) .theme-toggle .icon-sun { display: block; }
+    :root:not([data-theme]) .theme-toggle .icon-moon { display: none; }
+}
+
+/* ==========================================================================
+   Scanning loader
+   Shown for any wait long enough to notice. The page behind it blurs so the
+   eye goes to the activity, and the status line names the current stage
+   instead of animating a progress bar that tracks nothing.
+   ========================================================================== */
+
+.raiec-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--overlay-bg);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    backdrop-filter: blur(14px) saturate(120%);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--dur-mid) var(--ease-out), visibility var(--dur-mid);
+}
+
+.raiec-loader.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.raiec-loader-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 40px 48px;
+    text-align: center;
+    transform: translateY(10px) scale(0.97);
+    transition: transform var(--dur-slow) var(--ease-spring);
+}
+
+.raiec-loader.open .raiec-loader-inner {
+    transform: none;
+}
+
+.raiec-scan {
+    position: relative;
+    width: 96px;
+    height: 118px;
+    margin-bottom: 22px;
+}
+
+.raiec-scan-doc {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.raiec-scan-doc .doc-body,
+.raiec-scan-doc .doc-fold {
+    fill: none;
+    stroke: var(--accent-blue-bright);
+    stroke-width: 3.5;
+    stroke-linejoin: round;
+}
+
+.raiec-scan-doc .doc-body {
+    fill: var(--surface-1);
+}
+
+/* Each line brightens in turn, so the document reads as being worked through. */
+.raiec-scan-doc .doc-lines line {
+    stroke: var(--text-muted);
+    stroke-width: 5;
+    stroke-linecap: round;
+    animation: raiec-line-read 2.2s var(--ease-out) infinite;
+}
+
+.raiec-scan-doc .doc-lines line:nth-child(1) { animation-delay: 0s; }
+.raiec-scan-doc .doc-lines line:nth-child(2) { animation-delay: 0.18s; }
+.raiec-scan-doc .doc-lines line:nth-child(3) { animation-delay: 0.36s; }
+.raiec-scan-doc .doc-lines line:nth-child(4) { animation-delay: 0.54s; }
+
+@keyframes raiec-line-read {
+    0%, 70%, 100% { stroke: var(--text-muted); opacity: 0.45; }
+    25%, 45%      { stroke: var(--accent-cyan-bright); opacity: 1; }
+}
+
+/* The beam sweeps the page the way a scanner head would. */
+.raiec-scan-beam {
+    position: absolute;
+    left: -6px;
+    right: -6px;
+    height: 2px;
+    top: 0;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan-bright), transparent);
+    box-shadow: 0 0 14px 2px var(--accent-cyan);
+    animation: raiec-beam 2.2s var(--ease-out) infinite;
+}
+
+@keyframes raiec-beam {
+    0%        { transform: translateY(6px);   opacity: 0; }
+    12%       { opacity: 1; }
+    88%       { opacity: 1; }
+    100%      { transform: translateY(112px); opacity: 0; }
+}
+
+.raiec-loader-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.raiec-loader-step {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    min-height: 20px;
+    transition: opacity 180ms var(--ease-out);
+}
+
+/* Blurring moving pixels forces a full-page re-composite on every frame, which
+   is what made typing behind the login modal lag. Freeze motion underneath. */
+html.modal-open .video-bg { animation-play-state: paused !important; }
+html.modal-open *:not(.raiec-loader):not(.raiec-loader *):not(.login-modal):not(.login-modal *) {
+    animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .raiec-scan-beam { display: none; }
+    .raiec-scan-doc .doc-lines line { animation: none; opacity: 0.6; }
+}
+
+@media (max-width: 600px) {
+    .raiec-loader-inner { padding: 28px 24px; }
+    .raiec-scan { width: 76px; height: 94px; }
+}
+
+/* ==========================================================================
+   Responsive
+   Shared rules so every page family behaves the same on small screens,
+   rather than each stylesheet solving it differently (or not at all).
+   ========================================================================== */
+
+/* Wide content — tables, code, diagrams — scrolls inside its own box so the
+   page body itself never scrolls sideways. */
+.td-table-wrap,
+.wf-table-wrap,
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1024px) {
+    :root { --page-pad: 24px; }
+
+    .wf-nav-links,
+    .nav-menu-desktop {
+        gap: 18px;
+    }
+}
+
+@media (max-width: 860px) {
+    /* Nav link lists become horizontally scrollable strips instead of wrapping
+       into a second row and pushing the page content down. */
+    .wf-nav-links,
+    .td-nav-menu {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        max-width: 52vw;
+    }
+    .wf-nav-links::-webkit-scrollbar,
+    .td-nav-menu::-webkit-scrollbar { display: none; }
+
+    .wf-nav-links a,
+    .td-nav-menu a { white-space: nowrap; }
+
+    /* Multi-column card grids collapse to a single column. */
+    .wf-summary-grid,
+    .td-stats-grid,
+    .lar-kpi-grid,
+    .kpi-grid,
+    .features-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .td-filters,
+    .lar-filters,
+    .wf-actions {
+        flex-wrap: wrap;
+    }
+
+    .wf-actions .wf-btn { flex: 1 1 auto; }
+}
+
+@media (max-width: 600px) {
+    :root {
+        --page-pad: 16px;
+        --nav-height: 56px;
+    }
+
+    /* Hide the brand wordmark on the smallest screens; the logo still shows. */
+    .wf-nav-brand { display: none; }
+
+    .wf-summary-card,
+    .td-card,
+    .panel {
+        padding: 16px !important;
+    }
+
+    /* Stepper: allow it to wrap rather than squeezing five circles into 320px. */
+    .wf-steps {
+        flex-wrap: wrap;
+        justify-content: center;
+        row-gap: 14px;
+    }
+
+    h1, .wf-page-title { font-size: clamp(24px, 7vw, 34px) !important; }
+    h2 { font-size: clamp(19px, 5.5vw, 26px) !important; }
+
+    table { font-size: 13px; }
+    th, td { padding: 8px 10px !important; }
+
+    .theme-toggle { width: 32px; height: 32px; }
+}
+
+/* Touch targets: anything tappable needs a reasonable hit area. */
+@media (pointer: coarse) {
+    button,
+    .wf-btn,
+    .td-btn,
+    a.nav-link {
+        min-height: 40px;
+    }
+}

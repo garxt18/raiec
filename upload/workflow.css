@@ -4,26 +4,8 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
 :root {
-    --bg-primary: #0a0a1a;
-    --bg-secondary: #0d1117;
-    --bg-card: #111827;
-    --bg-card-light: #1a1f2e;
-    --text-primary: #ffffff;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --accent-blue: #3b82f6;
-    --accent-cyan: #06b6d4;
-    --accent-violet: #8b5cf6;
-    --accent-purple: #7c3aed;
-    --accent-green: #10b981;
-    --accent-orange: #f59e0b;
-    --accent-red: #ef4444;
-    --border-color: #1e293b;
-    --border-glow: rgba(139, 92, 246, 0.3);
-    --nav-height: 64px;
-    --radius-sm: 8px;
+    --nav-height: 64px;  /* workflow pages use a taller bar for the stepper */
     --radius-md: 16px;
-    --radius-lg: 24px;
 }
 
 html{scroll-behavior:smooth}
@@ -89,16 +71,14 @@ body {
     width: 100%;
     height: var(--nav-height);
     z-index: 1000;
-    background: rgba(10, 10, 26, 0.92);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border-color);
+    /* Colour comes from the shared nav tokens in theme.css. */
+    border-bottom: 1px solid var(--nav-border);
     display: flex;
     align-items: center;
     transition: background 0.4s ease;
 }
 .wf-nav-container {
-    max-width: 1280px;
+    max-width: var(--page-max);
     margin: 0 auto;
     padding: 0 40px;
     width: 100%;
@@ -161,7 +141,7 @@ body {
 .wf-page {
     position: relative;
     z-index: 1;
-    max-width: 1280px;
+    max-width: var(--page-max);
     margin: 0 auto;
     padding: calc(var(--nav-height) + 40px) 40px 80px;
     min-height: 100vh;
@@ -265,7 +245,7 @@ body {
 
 /* ===== CARDS & PANELS ===== */
 .wf-card {
-    background: rgba(17, 24, 39, 0.85);
+    background: var(--panel-85);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 24px;
@@ -282,7 +262,7 @@ body {
     margin-bottom: 40px;
 }
 .wf-summary-card {
-    background: rgba(17, 24, 39, 0.9);
+    background: var(--panel-90);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 20px 24px;
@@ -321,7 +301,7 @@ body {
 .wf-table tbody td {
     padding: 14px 16px;
     color: var(--text-secondary);
-    border-bottom: 1px solid rgba(30,41,59,0.4);
+    border-bottom: 1px solid var(--panel-40);
 }
 .wf-table tbody tr:hover td {
     background: rgba(30,41,59,0.3);
@@ -384,7 +364,7 @@ body {
     background: rgba(239,68,68,0.1);
 }
 .wf-btn-secondary {
-    background: rgba(30,41,59,0.8);
+    background: var(--panel-85);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
 }
@@ -517,7 +497,7 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    background: rgba(17,24,39,0.9);
+    background: var(--panel-90);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     padding: 14px 16px;
@@ -673,7 +653,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px 0;
-    border-bottom: 1px solid rgba(30,41,59,0.4);
+    border-bottom: 1px solid var(--panel-40);
 }
 .wf-recent-item:last-child { border-bottom: none; }
 .wf-recent-id {
@@ -688,7 +668,7 @@ body {
 
 /* ===== AI ANALYSIS CARDS ===== */
 .wf-ai-card {
-    background: rgba(17,24,39,0.85);
+    background: var(--panel-85);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     padding: 20px 24px;
@@ -783,7 +763,7 @@ body {
 
 /* ===== EXPANDABLE SECTIONS ===== */
 .wf-expand-section {
-    background: rgba(17,24,39,0.85);
+    background: var(--panel-85);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     margin-bottom: 12px;
@@ -1010,4 +990,18 @@ body {
     height: 1.5px;
     background: var(--accent-blue);
     opacity: 0.7;
+}
+
+/* ===== Content width =====
+   The workflow column was capped at 1280px, which left wide empty margins on a
+   normal desktop and made the tables feel cramped. It now uses the shared page
+   width token, with padding that tightens as the viewport narrows. */
+.wf-page {
+    padding-left: clamp(16px, 3vw, var(--page-pad));
+    padding-right: clamp(16px, 3vw, var(--page-pad));
+}
+
+.wf-nav-container {
+    padding-left: clamp(16px, 3vw, var(--page-pad));
+    padding-right: clamp(16px, 3vw, var(--page-pad));
 }

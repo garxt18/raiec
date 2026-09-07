@@ -85,14 +85,14 @@
         if (loggedIn && avatars.length) {
             var menu = document.createElement('div');
             menu.className = 'raiec-user-menu';
-            menu.style.cssText = 'position:absolute;min-width:210px;background:#0e1430;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px;box-shadow:0 18px 44px -12px rgba(0,0,0,.65);z-index:2000;display:none;font-family:Inter,system-ui,sans-serif;';
+            menu.style.cssText = 'position:absolute;min-width:210px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:12px;padding:12px;box-shadow:var(--shadow-lg);z-index:2000;display:none;font-family:Inter,system-ui,sans-serif;';
             menu.innerHTML =
-                '<div style="display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:10px;">' +
+                '<div style="display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border-subtle);margin-bottom:10px;">' +
                     '<div style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;background:linear-gradient(135deg,#3b82f6,#8b5cf6);flex:0 0 auto;">' + escHtml(initial) + '</div>' +
-                    '<div style="min-width:0;"><div style="color:#e7ecf5;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(name) + '</div>' +
-                    '<div style="color:#93a0b8;font-size:12px;text-transform:capitalize;">' + escHtml(role) + '</div></div>' +
+                    '<div style="min-width:0;"><div style="color:var(--text-primary);font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(name) + '</div>' +
+                    '<div style="color:var(--text-secondary);font-size:12px;text-transform:capitalize;">' + escHtml(role) + '</div></div>' +
                 '</div>' +
-                '<button type="button" class="raiec-logout-btn" style="width:100%;padding:9px 10px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;color:#fff;background:linear-gradient(135deg,#ef4444,#b91c1c);">Log out</button>';
+                '<button type="button" class="raiec-logout-btn" style="width:100%;padding:9px 10px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;color:#fff;background:linear-gradient(135deg,var(--accent-red),#b91c1c);">Log out</button>';
             document.body.appendChild(menu);
             menu.querySelector('.raiec-logout-btn').addEventListener('click', function () { RAIEC.logout(); });
 
@@ -119,8 +119,8 @@
             window.addEventListener('resize', function () { if (menu.style.display === 'block') place(); });
         }
 
-        if (isHome() && loggedIn) {
-            document.querySelectorAll('a.nav-link').forEach(function (a) {
+        if (loggedIn) {
+            document.querySelectorAll('a.nav-link, .td-nav-menu a').forEach(function (a) {
                 if (a.textContent.trim().toUpperCase() === 'LOGIN') {
                     a.textContent = 'LOGOUT';
                     a.onclick = function () { RAIEC.logout(); return false; };

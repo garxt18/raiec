@@ -7,7 +7,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../theme.css">
     <link rel="stylesheet" href="workflow.css">
+    <script>
+        // Applied before first paint so the page never flashes the wrong theme.
+        (function () {
+            try {
+                var t = localStorage.getItem('raiec_theme');
+                if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+            } catch (e) { /* storage blocked: fall back to prefers-color-scheme */ }
+        })();
+    </script>
 </head>
 <body>
     <div class="video-bg-wrapper" aria-hidden="true">
@@ -113,6 +123,7 @@
         </footer>
     </main>
     <script src="../config.js"></script>
+    <script src="../ui.js"></script>
     <script src="../auth.js"></script>
     <script src="workflow.js"></script>
 </body>

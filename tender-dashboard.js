@@ -397,7 +397,7 @@
         if (meta) meta.textContent = 'Showing ' + list.length + ' of ' + allTenders.length + ' Results';
         if (!list.length) {
             var msg = allTenders.length ? 'No tenders match your filters.' : 'No tenders uploaded yet. Use “Upload Estimate” to add one.';
-            body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94a3b8">' + msg + '</td></tr>';
+            body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-secondary)">' + msg + '</td></tr>';
             return;
         }
         body.innerHTML = list.map(rowHtml).join('');

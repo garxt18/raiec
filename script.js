@@ -27,6 +27,15 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // ===== Donut Chart Drawing (data-driven) =====
+// Canvas has no access to CSS variables, so resolve tokens at draw time. This keeps
+// the chart correct when the theme is switched without reloading the page.
+function cssToken(name, fallback) {
+    try {
+        var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        return v || fallback;
+    } catch (e) { return fallback; }
+}
+
 var HOME_DONUT_COLORS = ['#3b82f6', '#06b6d4', '#8b5cf6', '#22d3ee'];
 var homeDonutValues = [0, 0, 0, 0]; // [Under Evaluation, Officer Review, Finalized, Closed]; set from live stats
 
@@ -42,6 +51,12 @@ function drawDonutChart() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    const sliceColors = [
+        cssToken('--accent-blue', HOME_DONUT_COLORS[0]),
+        cssToken('--accent-cyan', HOME_DONUT_COLORS[1]),
+        cssToken('--accent-violet', HOME_DONUT_COLORS[2]),
+        cssToken('--accent-cyan-bright', HOME_DONUT_COLORS[3])
+    ];
     const total = homeDonutValues.reduce(function (sum, v) { return sum + v; }, 0);
     let startAngle = -Math.PI / 2;
 
@@ -51,7 +66,7 @@ function drawDonutChart() {
         ctx.arc(centerX, centerY, outerRadius, 0, 2 * Math.PI);
         ctx.arc(centerX, centerY, innerRadius, 2 * Math.PI, 0, true);
         ctx.closePath();
-        ctx.fillStyle = 'rgba(148, 163, 184, 0.15)';
+        ctx.fillStyle = cssToken('--surface-3', 'rgba(148, 163, 184, 0.15)');
         ctx.fill();
     } else {
         homeDonutValues.forEach(function (value, i) {
@@ -62,7 +77,7 @@ function drawDonutChart() {
             ctx.arc(centerX, centerY, outerRadius, startAngle, endAngle);
             ctx.arc(centerX, centerY, innerRadius, endAngle, startAngle, true);
             ctx.closePath();
-            ctx.fillStyle = HOME_DONUT_COLORS[i];
+            ctx.fillStyle = sliceColors[i];
             ctx.fill();
             startAngle = endAngle;
         });
@@ -71,7 +86,7 @@ function drawDonutChart() {
     // Inner circle (hollow center)
     ctx.beginPath();
     ctx.arc(centerX, centerY, innerRadius - 2, 0, 2 * Math.PI);
-    ctx.fillStyle = 'rgba(30, 41, 59, 0.8)';
+    ctx.fillStyle = cssToken('--bg-card', 'rgba(30, 41, 59, 0.8)');
     ctx.fill();
 }
 
@@ -89,6 +104,15 @@ function renderHomeDonut(evalCount, reviewCount, finalCount, closedCount) {
     });
     drawDonutChart();
 }
+
+// The donut is raster, not CSS, so it must be repainted on a theme change.
+(function () {
+    var root = document.documentElement;
+    new MutationObserver(function () { drawDonutChart(); })
+        .observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    window.matchMedia('(prefers-color-scheme: light)')
+        .addEventListener('change', function () { drawDonutChart(); });
+})();
 
 // ===== Scroll Animations =====
 function initScrollAnimations() {
@@ -369,7 +393,7 @@ function togglePassword() {
         })
         .catch(function () {
             var body = document.getElementById('homeRecentTenders');
-            if (body) body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:18px;color:#94a3b8">Backend offline — start the server to see live tenders.</td></tr>';
+            if (body) body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--text-secondary)">Backend offline — start the server to see live tenders.</td></tr>';
         });
 
     function setKpi(id, val) {
@@ -385,7 +409,7 @@ function togglePassword() {
         var body = document.getElementById('homeRecentTenders');
         if (!body) return;
         if (!list.length) {
-            body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:18px;color:#94a3b8">No tenders uploaded yet.</td></tr>';
+            body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--text-secondary)">No tenders uploaded yet.</td></tr>';
             return;
         }
         var recent = list.slice().sort(function (a, b) { return (b.id || 0) - (a.id || 0); }).slice(0, 5);
@@ -453,11 +477,11 @@ function togglePassword() {
         var q = input.value.trim().toLowerCase();
         result.hidden = false;
         if (!q) {
-            result.innerHTML = '<span style="color:#94a3b8">Enter a tender number to check its status.</span>';
+            result.innerHTML = '<span style="color:var(--text-secondary)">Enter a tender number to check its status.</span>';
             return;
         }
         if (!tendersCache.length) {
-            result.innerHTML = '<span style="color:#94a3b8">No tender data available (is the backend running?).</span>';
+            result.innerHTML = '<span style="color:var(--text-secondary)">No tender data available (is the backend running?).</span>';
             return;
         }
         var match = tendersCache.filter(function (t) {
@@ -472,7 +496,7 @@ function togglePassword() {
             '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
                 '<strong>' + esc(match.tenderNo) + '</strong>' +
                 '<span class="status-badge ' + st.cls + '">' + st.label + '</span>' +
-                '<span style="color:#cbd5e1">' + esc(truncate(match.nameOfWork || '', 60)) + '</span>' +
+                '<span style="color:var(--text-secondary)">' + esc(truncate(match.nameOfWork || '', 60)) + '</span>' +
                 '<button class="btn-check-status" style="margin-left:auto" onclick="openTender(' + match.id + ')">View</button>' +
             '</div>';
     }

@@ -177,7 +177,7 @@ function showUploadMessage(text, type) {
     el.textContent = text;
     el.style.marginTop = '12px';
     el.style.fontSize = '14px';
-    el.style.color = type === 'error' ? '#f87171' : (type === 'info' ? '#94a3b8' : '#34d399');
+    el.style.color = type === 'error' ? '#f87171' : (type === 'info' ? 'var(--text-secondary)' : '#34d399');
 }
 
 // ===== Step 2: render real extracted line items =====
@@ -377,12 +377,12 @@ function renderRateMatch(d) {
 // percentage applies to the schedule total, not to individual unit rates.
 function buildRefCell(it) {
     if (it.referenceRate == null) {
-        return it.source === 'NS' ? '<span style="color:#94a3b8">no prior rate</span>' : '—';
+        return it.source === 'NS' ? '<span style="color:var(--text-secondary)">no prior rate</span>' : '—';
     }
     var html = formatNum(it.referenceRate);
 
     if (it.referenceSource) {
-        var colour = it.referenceStale ? '#fbbf24' : '#94a3b8';
+        var colour = it.referenceStale ? '#fbbf24' : 'var(--text-secondary)';
         html += '<br><span style="font-size:11px;color:' + colour + '">'
              + (it.referenceStale ? '⚠ ' : '') + escapeHtml(it.referenceSource) + '</span>';
     }
