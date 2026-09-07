@@ -1,6 +1,6 @@
 // ===== RAIEC auth: token storage, fetch interception, login/logout =====
 (function () {
-    var API = 'http://localhost:8080/api';
+    var API = (window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiBase) || 'http://localhost:8080/api';
     var K = { token: 'raiec_token', role: 'raiec_role', user: 'raiec_user', name: 'raiec_name' };
 
     function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }

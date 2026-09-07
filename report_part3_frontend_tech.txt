@@ -1,0 +1,37 @@
+RAIEC INTERNSHIP PROJECT REPORT - PART 3: FRONTEND TECHNOLOGIES
+
+1. CORE STACK (VANILLA)
+- HTML5: Semantic markup
+- CSS3: Flexbox, Grid, animations
+- Vanilla JavaScript ES6+: No frameworks
+- Google Fonts (Inter): Weights 300-900
+
+2. BROWSER APIs
+- Fetch API: REST communication
+- Canvas API: Donut chart rendering
+- localStorage: JWT token storage
+- sessionStorage: Workflow state
+- requestAnimationFrame: Smooth animations
+- IntersectionObserver: Scroll effects
+- File API: PDF uploads
+- FormData API: Multipart encoding
+
+3. JAVASCRIPT MODULES
+auth.js (131 lines): JWT management, login/logout
+script.js (528 lines): Home page, canvas charts, KPI animations
+tender-dashboard.js (701 lines): Tender list, filters, CSV export
+workflow.js (547 lines): 5-step upload wizard
+reports.js (97 lines): Statistics animations
+
+4. ANIMATIONS
+- CSS Keyframes: Transitions
+- CSS Transforms: Hardware acceleration
+- requestAnimationFrame: CountUp with easing
+- Video Background: MP4 with overlay
+
+5. UI/UX
+- Responsive: Mobile-first design
+- Fixed Navigation: Blur effect
+- Modal Dialogs: Pure CSS/JS
+- Toast Notifications: Auto-dismiss
+- Badge System: Color-coded status

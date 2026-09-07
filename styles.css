@@ -1762,3 +1762,27 @@ body {
     .ha-grid, .ha-orb, .ha-search::after, .ha-tile-val, .ha-spark-line { animation: none; }
     .ha-spark-line { stroke-dashoffset: 0; }
 }
+
+/* ===== Modal performance =====
+   While a blurred-backdrop modal is open, suspend looping background animation.
+   Re-blurring moving pixels on every repaint is what made typing in the login
+   form lag; pausing the motion keeps the identical visual at a fraction of the cost. */
+html.modal-open .video-bg {
+    /* the video element is paused in JS; this also stops any CSS transform on it */
+    animation-play-state: paused !important;
+}
+
+html.modal-open *:not(.login-modal):not(.login-modal *) {
+    animation-play-state: paused !important;
+}
+
+/* The form itself must stay perfectly responsive: keep it out of the blurred
+   compositing layer and give it its own so keystrokes repaint only the field. */
+.login-modal {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+.login-input {
+    will-change: contents;
+}

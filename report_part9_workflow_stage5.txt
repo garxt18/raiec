@@ -1,0 +1,48 @@
+RAIEC INTERNSHIP PROJECT REPORT - PART 9: WORKFLOW STAGE 5
+
+STAGE 5: OFFICER REVIEW & DECISION
+
+FRONTEND (step5-officer-review.html):
+- GET /api/tenders/{id}
+- GET /api/tenders/{id}/rate-match
+- GET /api/tenders/{id}/ai-summary
+
+CONSOLIDATED VIEW:
+- Tab 1: Tender summary
+- Tab 2: Rate match results
+- Tab 3: AI analysis
+- Decision panel: Approve/Reject buttons
+
+APPROVE WORKFLOW:
+POST to /api/tenders/{id}/approve
+
+Backend (TenderService.approve):
+1. Load tender
+2. Update status: UPLOADED → APPROVED
+3. Extract Non-Scheduled items
+4. For each NS item:
+   - Check if LAR code exists
+   - If exists AND new rate < existing: Update
+   - If not exists: Create new LAR record
+5. Save LAR records (LOWEST RATE WINS)
+6. Return success
+
+Example LAR Update:
+Existing: NS001 "RCC Work" ₹500
+New: NS001 "RCC Work" ₹450
+Result: Update to ₹450 (lower is better)
+
+REJECT WORKFLOW:
+POST to /api/tenders/{id}/reject
+
+Backend (TenderService.reject):
+1. Update status: UPLOADED → REJECTED
+2. Record reason (optional)
+3. No LAR update
+
+POST-DECISION:
+- Success message
+- Auto-redirect to dashboard after 3s
+
+TECHNOLOGIES:
+Spring @Transactional, Spring Data JPA, CSS Tabs, Promise.all()

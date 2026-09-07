@@ -1,0 +1,28 @@
+RAIEC INTERNSHIP PROJECT REPORT - PART 1: OVERVIEW
+
+Project Name: RAIEC (Railway Automated Intelligent Estimate Checker)
+Organization: North Western Railway - IT Department, Civil & Construction Unit
+Duration: 45 Days Industrial Training
+Role: Software Developer Intern
+
+1. BACKGROUND
+North Western Railway's Civil and Construction unit handles numerous tender estimates daily from IREPS (Indian Railways E-Procurement System). Each tender PDF contains hundreds of line items requiring verification against official rate references (CPWD DSR and IRUSSOR). The manual process was time-consuming and error-prone.
+
+2. OBJECTIVES
+- Automate PDF parsing of IREPS tender documents
+- Implement intelligent rate matching against reference databases
+- Provide directional variance analysis with smart thresholds
+- Integrate AI-powered risk assessment
+- Build self-learning LAR (Last Accepted Rate) dataset
+- Create officer approval workflow with role-based access
+- Develop real-time dashboard and analytics
+
+3. KEY FEATURES
+✓ Multi-format PDF parsing
+✓ Exact code + fuzzy description matching
+✓ Directional thresholds (5% WARN, 10% FAIL)
+✓ Rule-based checks + LLM assessment
+✓ Self-learning LAR dataset
+✓ JWT authentication (Admin/Officer)
+✓ Real-time dashboard
+✓ No-build frontend (vanilla HTML/CSS/JS)

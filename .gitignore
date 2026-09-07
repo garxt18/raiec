@@ -11,6 +11,10 @@ target/
 # --- Large / licensed data (share via zip, not Git) ---
 rate-books/
 sample-tenders/
+# Working copies of the same tender PDFs, renamed by tender number for easy re-scanning.
+tenders-to-scan/
+# Local JSON snapshots taken before destructive operations.
+backups/
 
 # --- Large unused media (too big for GitHub; kept on disk / in the zip) ---
 videos/Banner video.mp4

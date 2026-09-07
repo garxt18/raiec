@@ -1,0 +1,44 @@
+RAIEC INTERNSHIP PROJECT REPORT - PART 2: BACKEND TECHNOLOGIES
+
+1. CORE FRAMEWORK
+- Java 21: Latest LTS with modern features
+- Spring Boot 4.1.0: Enterprise framework with embedded Tomcat
+- Maven: Build automation with wrapper
+
+2. SPRING MODULES
+- Web MVC: RESTful APIs
+- Data JPA: ORM and repositories
+- Security: Authentication/authorization
+- Validation: Bean validation
+
+3. SECURITY
+- JJWT v0.12.6: JWT tokens with HMAC-SHA256
+- Spring Security: Filter chain, BCrypt passwords
+- 8-hour token expiration
+- Role-based access (ADMIN, OFFICER)
+
+4. DATABASE
+- PostgreSQL: Production database
+- Hibernate ORM: JPA implementation
+- Spring Data JPA: Repository pattern
+- H2: In-memory testing database
+
+5. PDF PROCESSING
+- Apache PDFBox 3.0.4: Text extraction
+- Custom TenderPdfParser: IREPS format recognition
+- Handles schedules, line items, rate breakups
+
+6. AI/LLM
+- Custom OpenAI-compatible client
+- Supports: OpenAI, Groq, OpenRouter
+- GPT-4o-mini, temperature 0.3, max tokens 400
+- Fallback to rule-based analysis
+
+7. RATE MATCHING
+- Custom Trigram Similarity Algorithm
+- Multi-source: DSR → IRUSSOR → LAR
+- Directional variance calculation
+
+8. TESTING
+- JUnit 5, Spring Boot Test, MockMvc
+- Jqwik v1.9.1: Property-based testing

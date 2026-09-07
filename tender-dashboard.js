@@ -320,7 +320,7 @@
 
 // ===== Live Tender Results (from backend API) =====
 (function() {
-    var API = 'http://localhost:8080/api';
+    var API = (window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiBase) || 'http://localhost:8080/api';
     var body = document.getElementById('tenderResultsBody');
     if (!body) return;
 
@@ -474,7 +474,7 @@ function viewTender(id) {
 
 // ===== Live dashboard stats + recent notifications (from backend API) =====
 (function() {
-    var API = 'http://localhost:8080/api';
+    var API = (window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiBase) || 'http://localhost:8080/api';
 
     fetch(API + '/tenders/stats')
         .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
@@ -579,7 +579,7 @@ function viewTender(id) {
 // ===== Live LAR records + KPIs + recent updates (LAR Intelligence page) =====
 (function() {
     if (!document.getElementById('larTableBody')) return;
-    var API = 'http://localhost:8080/api';
+    var API = (window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiBase) || 'http://localhost:8080/api';
 
     fetch(API + '/lar')
         .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })

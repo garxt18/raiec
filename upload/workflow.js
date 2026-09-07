@@ -1,7 +1,7 @@
 // ===== Workflow Shared JS =====
 
 // Backend API base (local dev). Change this when deploying.
-var RAIEC_API = 'http://localhost:8080/api';
+var RAIEC_API = (window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiBase) || 'http://localhost:8080/api';
 var raiecSelectedFile = null;
 
 // Expandable sections
@@ -165,7 +165,7 @@ function uploadEstimate() {
             navigateTo('step2-ocr-extract.html');
         })
         .catch(function() {
-            showUploadMessage('Could not reach the server. Make sure the backend is running on http://localhost:8080.', 'error');
+            showUploadMessage('Could not reach the server (' + ((window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiOrigin) || 'http://localhost:8080') + ').', 'error');
             if (btn) { btn.disabled = false; btn.textContent = 'Submit for validation'; }
         });
 }
@@ -287,7 +287,7 @@ function decideTender(action, label) {
             showReviewMessage(msg, 'success');
         })
         .catch(function() {
-            showReviewMessage('Could not reach the server. Make sure the backend is running on http://localhost:8080.', 'error');
+            showReviewMessage('Could not reach the server (' + ((window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiOrigin) || 'http://localhost:8080') + ').', 'error');
         });
 }
 

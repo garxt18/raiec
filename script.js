@@ -244,6 +244,20 @@ window.addEventListener('scroll', function () {
 })();
 
 // ===== Login Modal =====
+// The overlay uses backdrop-filter: blur(). Blurring a *moving* background forces the
+// compositor to re-blur the whole page on every repaint, which makes typing in the form
+// visibly lag. Freezing the background video and the looping CSS animations while the
+// modal is open keeps the same look with none of the cost.
+function freezeBackground(frozen) {
+    document.documentElement.classList.toggle('modal-open', frozen);
+    var video = document.querySelector('video.video-bg');
+    if (!video) return;
+    try {
+        if (frozen) video.pause();
+        else video.play().catch(function () { /* autoplay may be blocked; harmless */ });
+    } catch (e) { /* ignore */ }
+}
+
 function openLoginModal() {
     var modal = document.getElementById('loginModal');
     if (!modal) return;
@@ -252,6 +266,7 @@ function openLoginModal() {
     void modal.offsetWidth;
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
+    freezeBackground(true);
     // Focus first input
     setTimeout(function() {
         var input = modal.querySelector('.login-input');
@@ -264,6 +279,7 @@ function closeLoginModal() {
     if (!modal) return;
     modal.classList.remove('open');
     document.body.style.overflow = '';
+    freezeBackground(false);
     setTimeout(function() {
         modal.hidden = true;
     }, 300);
@@ -311,7 +327,7 @@ function togglePassword() {
 
 // ===== Home page live data (KPIs, donut, recent tenders, alerts, search) =====
 (function () {
-    var API = 'http://localhost:8080/api';
+    var API = (window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiBase) || 'http://localhost:8080/api';
     // Only run on the home page (it has the KPI row / donut).
     if (!document.getElementById('donutChart') && !document.getElementById('homeTotal')) return;
 

@@ -1,0 +1,53 @@
+RAIEC INTERNSHIP PROJECT REPORT - PART 8: WORKFLOW STAGE 4
+
+STAGE 4: AI ANALYSIS
+
+FRONTEND (step4-ai-analysis.html):
+- GET to /api/tenders/{id}/ai-summary
+
+BACKEND - RULE-BASED CHECKS (AiAnalysisService):
+
+1. Rate Deviation Analysis
+   - Count OK/WARN/FAIL items
+   - Flag if >20% are WARN/FAIL
+
+2. LAR Lowest Rate Check (NS items)
+   - Compare against historical LAR
+   - Flag if not lowest
+
+3. Math Verification
+   - Verify: quantity × rate = amount
+   - Check breakup sums
+   - Tolerance: 1% for rounding
+
+4. Duplicate Detection
+   - Find same description, different rates
+
+BACKEND - LLM ASSESSMENT (AiAssessmentService):
+
+1. Build Context:
+   - Tender summary
+   - Rate match summary
+   - Check results
+   - Top 5 high variance items
+
+2. Call LLM:
+   - Model: GPT-4o-mini
+   - Temperature: 0.3
+   - Max tokens: 400
+   - Timeout: 20s
+
+3. Parse Response:
+   - narrative: Risk summary
+   - recommendation: APPROVE/REVIEW/REJECT
+   - riskLevel: LOW/MEDIUM/HIGH
+
+4. Fallback (if LLM fails):
+   - Rule-based risk derivation
+
+FRONTEND RENDERING:
+- Checks: Cards with PASS/FAIL badges
+- Assessment: Risk level, narrative, recommendation
+
+TECHNOLOGIES:
+OpenAI-compatible client, Java Streams, CompletableFuture, CSS Grid

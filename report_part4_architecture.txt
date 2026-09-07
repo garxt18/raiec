@@ -1,0 +1,36 @@
+RAIEC INTERNSHIP PROJECT REPORT - PART 4: SYSTEM ARCHITECTURE
+
+1. LAYERED ARCHITECTURE
+Presentation Layer: HTML/CSS/JS, client-side routing
+Application Layer: REST controllers, DTO mapping, JWT validation
+Business Logic Layer: Services with transaction management
+Data Access Layer: Spring Data JPA repositories
+Persistence Layer: PostgreSQL database
+
+2. BACKEND MODULES
+com.raiec.tender: PDF parsing, ingest, workflow
+com.raiec.reference: DSR/IRUSSOR management
+com.raiec.lar: Last Accepted Rate dataset
+com.raiec.ratematch: Fuzzy matching engine
+com.raiec.ai: Rule-based + LLM analysis
+com.raiec.auth: JWT, users, roles
+com.raiec.common.web: Security, CORS
+
+3. DATABASE SCHEMA
+tender (1:N) → schedule (1:N) → schedule_entry (1:N) → breakup_item
+
+Reference tables: lar_record, irussor_item, dsr_item, app_user
+Indexes: tender_no (unique), status
+
+4. SECURITY FLOW
+1. User submits credentials to /api/auth/login
+2. Password verified with BCrypt
+3. JWT generated with username/role claims
+4. Token stored in localStorage (8-hour expiration)
+5. Future requests include token in Authorization header
+6. JwtAuthFilter validates token
+7. Role-based access enforced
+
+ROLES:
+ADMIN: All permissions + bulk ingest + imports
+OFFICER: Upload, view, approve/reject tenders

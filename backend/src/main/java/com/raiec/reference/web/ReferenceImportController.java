@@ -9,7 +9,12 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * Admin endpoint to load rate-book data. UNAUTHENTICATED for now (auth phase will secure it).
+ * Admin endpoint to load rate-book data. Restricted to ADMIN by
+ * {@link com.raiec.common.web.SecurityConfig}.
+ *
+ * <p>The edition defaults match the shipped rate-book PDFs and, more importantly, the edition
+ * a tender cites ("CPWD DSR 2021 Items"). The edition is the officer's audit trail for which
+ * published rate justified a decision, so it must name the book the rate actually came from.
  */
 @RestController
 @RequestMapping("/api/reference")
@@ -30,7 +35,7 @@ public class ReferenceImportController {
     }
 
     @PostMapping("/import/dsr")
-    public Map<String, Object> importDsr(@RequestParam(defaultValue = "2023") String edition) {
+    public Map<String, Object> importDsr(@RequestParam(defaultValue = "2021") String edition) {
         int n = referenceImportService.importDsr(edition);
         return Map.of("imported", n, "edition", edition);
     }

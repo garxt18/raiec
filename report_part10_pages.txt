@@ -1,0 +1,39 @@
+RAIEC INTERNSHIP PROJECT REPORT - PART 10: PAGE FUNCTIONALITY
+
+1. INDEX.HTML (HOME)
+- Video background with gradient overlay
+- Live KPIs (total, pending, approved, rejected)
+- Canvas donut chart showing distribution
+- Recent tender activity feed
+- Alert cards
+- Login modal
+APIs: GET /api/tenders/stats, GET /api/tenders
+
+2. TENDER-DASHBOARD.HTML
+- KPI cards
+- Tender list table with pagination
+- Filters: Status, search, date range
+- CSV export
+- View/Edit/Delete actions
+APIs: GET /api/tenders, GET /api/tenders/stats, DELETE /api/tenders/{id}
+
+3. LAR-INTELLIGENCE.HTML
+- LAR dataset size
+- Coverage statistics
+- Real insights: frequent items, rate trends, distribution
+- LAR record table with search
+- CSV export
+APIs: GET /api/lar
+
+4. GUIDE.HTML
+- Step-by-step workflow explanation
+- Animated illustrations
+- Technology stack overview
+- Architecture diagram
+
+5. UPLOAD WORKFLOW (5 STEPS)
+step1-upload.html: Drag-and-drop PDF upload
+step2-ocr-extract.html: Verify extracted data
+step3-rate-match.html: View rate comparison
+step4-ai-analysis.html: Review AI checks
+step5-officer-review.html: Approve/Reject decision

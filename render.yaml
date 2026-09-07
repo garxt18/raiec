@@ -1,0 +1,33 @@
+# Render blueprint for the RAIEC backend.
+# Import this repo at https://render.com -> New -> Blueprint, and Render reads this file.
+#
+# The database is NOT declared here on purpose: Render's free Postgres expires after 30 days,
+# so DATABASE_URL is set manually to a Neon database instead (Neon's free tier does not expire).
+services:
+  - type: web
+    name: raiec-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: singapore          # closest Render region to India
+    healthCheckPath: /api/auth/me   # returns 401 unauthenticated, which still proves the app is up
+    envVars:
+      # JDBC URL for the Neon database, in the form:
+      #   jdbc:postgresql://<host>/<db>?user=<user>&password=<pw>&sslmode=require
+      - key: DATABASE_URL
+        sync: false            # set by hand in the dashboard; never committed
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # Must be at least 32 characters for HS256. Use Render's "Generate" button.
+      - key: RAIEC_JWT_SECRET
+        generateValue: true
+      # Lock the API to the deployed frontend once its domain is known,
+      # e.g. https://raiec.vercel.app
+      - key: RAIEC_CORS_ORIGINS
+        sync: false
+      # Optional: enables the real LLM assessment instead of the rule-based fallback.
+      - key: RAIEC_LLM_API_KEY
+        sync: false
