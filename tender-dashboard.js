@@ -462,6 +462,7 @@
             renderTabs();
             renderCalendar();
             wireStatTiles();
+            initCalendarToggle();
             applyFilters();
         })
         .catch(function() { /* server offline: keep the static demo rows as a fallback */ });
@@ -606,30 +607,46 @@
             var d = tenderDate(t);
             if (!d) return;
             var k = d.toISOString().slice(0, 10);
-            byDay[k] = (byDay[k] || 0) + 1;
+            (byDay[k] = byDay[k] || []).push(t);
         });
 
         var year = tdMonth.getFullYear(), month = tdMonth.getMonth();
         var first = new Date(year, month, 1);
         var startPad = (first.getDay() + 6) % 7;          // Monday-first
         var daysInMonth = new Date(year, month + 1, 0).getDate();
-        var maxCount = Math.max.apply(null, [1].concat(Object.keys(byDay).map(function (k) { return byDay[k]; })));
+        var maxCount = Math.max.apply(null, [1].concat(Object.keys(byDay).map(function (k) { return byDay[k].length; })));
         var todayIso = new Date().toISOString().slice(0, 10);
 
         var cells = '';
         for (var i = 0; i < startPad; i++) cells += '<div class="td-cal-cell is-empty"></div>';
         for (var day = 1; day <= daysInMonth; day++) {
             var iso = new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
-            var n = byDay[iso] || 0;
+            var onDay = byDay[iso] || [];
+            var n = onDay.length;
             // Four steps rather than a continuous scale: the eye reads bands, not gradients.
             var level = n === 0 ? 0 : Math.min(4, Math.ceil((n / maxCount) * 4));
+
+            // Name the tenders rather than only counting them: a bare number tells the
+            // officer something happened but not what, so they would have to click to
+            // find out. Two fit; the rest are summarised.
+            var SHOWN = 2;
+            var chips = onDay.slice(0, SHOWN).map(function (t) {
+                return '<span class="td-cal-ref" title="' + esc(t.nameOfWork || '') + '">' +
+                       esc(t.tenderNo || '\u2014') + '</span>';
+            }).join('');
+            if (n > SHOWN) {
+                chips += '<span class="td-cal-more">+' + (n - SHOWN) + ' more\u2026</span>';
+            }
+
+            var titles = onDay.map(function (t) { return t.tenderNo; }).join(', ');
             cells += '<button type="button" class="td-cal-cell' +
                      (tdDay === iso ? ' is-selected' : '') + (iso === todayIso ? ' is-today' : '') +
                      '" data-level="' + level + '" data-day="' + iso + '"' +
                      (n === 0 ? ' disabled' : '') +
-                     ' aria-label="' + day + ' \u2014 ' + n + ' tender(s)">' +
+                     ' title="' + esc(titles) + '"' +
+                     ' aria-label="' + day + ' \u2014 ' + n + ' tender(s): ' + esc(titles) + '">' +
                      '<span class="td-cal-num">' + day + '</span>' +
-                     (n ? '<span class="td-cal-count">' + n + '</span>' : '') +
+                     (n ? '<span class="td-cal-refs">' + chips + '</span>' : '') +
                      '</button>';
         }
 
@@ -698,6 +715,39 @@
                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
             });
         });
+    }
+
+
+    /* ---------------------------------------------------------------------
+       Calendar is opt-in
+       Most visits to this page are about the list. The calendar answers a
+       different question, so it stays closed until asked for rather than
+       pushing the table down for everyone.
+       ------------------------------------------------------------------- */
+    function initCalendarToggle() {
+        var btn = document.getElementById('tdCalToggle');
+        var card = document.getElementById('tdCalendarCard');
+        var label = document.getElementById('tdCalToggleText');
+        if (!btn || !card) return;
+
+        var open = false;
+        try { open = localStorage.getItem('raiec_cal_open') === '1'; } catch (e) { /* ignore */ }
+        apply(open);
+
+        btn.addEventListener('click', function () { apply(!open); });
+
+        function apply(next) {
+            open = next;
+            card.hidden = !open;
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            btn.classList.toggle('is-active', open);
+            if (label) label.textContent = open ? 'Hide calendar' : 'Calendar view';
+            try { localStorage.setItem('raiec_cal_open', open ? '1' : '0'); } catch (e) { /* ignore */ }
+            if (open) {
+                renderCalendar();
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
     }
 
     // Row click / keyboard opens the tender.

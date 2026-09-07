@@ -13,6 +13,8 @@ rate-books/
 sample-tenders/
 # Working copies of the same tender PDFs, renamed by tender number for easy re-scanning.
 tenders-to-scan/
+# Test PDFs for checking a deployment. The README is tracked; the PDFs are not.
+test-tenders/*/
 # Local JSON snapshots taken before destructive operations.
 backups/
 
