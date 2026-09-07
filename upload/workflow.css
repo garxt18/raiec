@@ -17,12 +17,9 @@ body {
     line-height: 1.6;
     overflow-x: hidden;
     min-height: 100vh;
-    animation: pageFadeIn 0.15s ease-out;
 }
 
-@keyframes pageFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+to { opacity: 1; }
 }
 
 /* ===== VIDEO & BACKGROUND ===== */
@@ -1419,9 +1416,7 @@ a.wf-stepp:focus-visible .wf-stepp-dot {
     padding: 18px 20px 18px 26px;
     margin-bottom: 14px;
     overflow: hidden;
-    opacity: 0;
-    transform: translateY(10px);
-    animation: wf-check-in 460ms var(--ease-out) forwards;
+    animation: wf-check-in 460ms var(--ease-out) both;
     animation-delay: calc(var(--i, 0) * 90ms);
     transition: border-color var(--dur-mid) var(--ease-out), transform var(--dur-mid) var(--ease-out);
 }
@@ -1432,7 +1427,8 @@ a.wf-stepp:focus-visible .wf-stepp-dot {
 }
 
 @keyframes wf-check-in {
-    to { opacity: 1; transform: none; }
+    from { transform: translateY(10px); }
+    to   { transform: none; }
 }
 
 /* A colour rail carries the verdict, so severity is readable before any text. */
@@ -1593,8 +1589,8 @@ a.wf-stepp:focus-visible .wf-stepp-dot {
 }
 
 @keyframes wf-outcome-in {
-    from { opacity: 0; transform: translateY(16px) scale(0.96); }
-    to   { opacity: 1; transform: none; }
+    from { transform: translateY(16px) scale(0.96); }
+    to   { transform: none; }
 }
 
 .wf-outcome-close {
@@ -1623,8 +1619,8 @@ a.wf-stepp:focus-visible .wf-stepp-dot {
 }
 
 @keyframes wf-mark-pop {
-    from { transform: scale(0.4); opacity: 0; }
-    to   { transform: none; opacity: 1; }
+    from { transform: scale(0.4); }
+    to   { transform: none; }
 }
 
 .wf-outcome-mark svg {
@@ -1740,13 +1736,17 @@ a.wf-stepp:focus-visible .wf-stepp-dot {
    motion rather than five unrelated page loads.
    ============================================================================= */
 
+/* Entry animates transform only, never opacity. An animation can fail to run —
+   a background tab freezes it at frame 0 — and if opacity were animated the page
+   would simply be invisible until the tab is focused. Readability must not depend
+   on an animation completing. */
 .wf-page {
     animation: wf-page-in 420ms var(--ease-out) both;
 }
 
 @keyframes wf-page-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: none; }
+    from { transform: translateY(10px); }
+    to   { transform: none; }
 }
 
 /* Applied just before navigating away. */
@@ -1754,6 +1754,7 @@ body.wf-leaving .wf-page {
     animation: wf-page-out 240ms var(--ease-out) both;
 }
 
+/* Leaving may fade: the page is on its way out, so a frozen frame is harmless. */
 @keyframes wf-page-out {
     from { opacity: 1; transform: none; }
     to   { opacity: 0; transform: translateY(-8px); }
@@ -1773,10 +1774,127 @@ body.wf-leaving .wf-navbar { opacity: 1; }
 }
 
 @keyframes wf-file-in {
-    from { opacity: 0; transform: translateY(8px) scale(0.985); }
-    to   { opacity: 1; transform: none; }
+    from { transform: translateY(8px) scale(0.985); }
+    to   { transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .wf-file-preview.is-accepted { animation: none; }
+}
+
+/* =============================================================================
+   Duplicate tender dialog
+   A duplicate is a decision point, not an error, so it is presented as one rather
+   than as red text under the form.
+   ============================================================================= */
+
+.wf-dup-card {
+    position: relative;
+    width: min(500px, calc(100vw - 40px));
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 32px 32px 26px;
+    box-shadow: var(--shadow-lg);
+    animation: wf-outcome-in 460ms var(--ease-spring);
+}
+
+.wf-dup-mark {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--tint-orange);
+    margin-bottom: 16px;
+}
+
+.wf-dup-mark svg {
+    width: 26px;
+    height: 26px;
+    fill: none;
+    stroke: var(--accent-orange);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.wf-dup-card h3 {
+    margin: 0 0 6px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.wf-dup-sub {
+    margin: 0 0 20px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.wf-dup-facts {
+    margin: 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.wf-dup-facts > div {
+    display: grid;
+    grid-template-columns: 128px 1fr;
+    gap: 14px;
+    padding: 9px 14px;
+    background: var(--surface-1);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.wf-dup-facts > div:last-child { border-bottom: none; }
+
+.wf-dup-facts dt {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.wf-dup-facts dd {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+    word-break: break-word;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wf-dup-card { animation: none; }
+}
+
+/* The WARN band sat flush against its neighbours in the benchmark strip. */
+.wf-th-list { gap: 12px; }
+.wf-th-row + .wf-th-row { margin-left: 2px; }
+
+/* Source tags read as a second, separate control from the verdict tabs. */
+.wf-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.wf-filter-source {
+    position: relative;
+    padding-left: 14px;
+}
+
+.wf-filter-source::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 22px;
+    background: var(--border-strong);
 }

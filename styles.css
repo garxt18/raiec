@@ -20,7 +20,6 @@ body {
     line-height: 1.6;
     overflow-x: hidden;
     min-height: 100vh;
-    animation: pageFadeIn 0.15s ease-out;
 }
 
 .sr-only {
@@ -1469,10 +1468,7 @@ body {
     transition: left 0.5s ease;
 }
 
-/* ===== PAGE TRANSITION ===== */
-@keyframes pageFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+to { opacity: 1; }
 }
 
 /* ===== ACTIVE NAV INDICATOR ===== */
@@ -1755,7 +1751,11 @@ html.modal-open .video-bg {
     animation-play-state: paused !important;
 }
 
-html.modal-open *:not(.login-modal):not(.login-modal *) {
+/* Narrow: freezing finite entry animations leaves them stuck at their first
+   frame (often opacity 0). Only the decorative loops are worth pausing. */
+html.modal-open .bg-streaks,
+html.modal-open .streak,
+html.modal-open [class*="float"] {
     animation-play-state: paused !important;
 }
 

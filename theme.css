@@ -513,8 +513,17 @@ body,
 
 /* Blurring moving pixels forces a full-page re-composite on every frame, which
    is what made typing behind the login modal lag. Freeze motion underneath. */
-html.modal-open .video-bg { animation-play-state: paused !important; }
-html.modal-open *:not(.raiec-loader):not(.raiec-loader *):not(.login-modal):not(.login-modal *) {
+/* Pausing EVERY animation was too broad: a finite entry animation using
+   fill-mode:both freezes at its first frame, so any element mid-entry — a page
+   fading in, a card sliding up — is stuck at opacity 0 and vanishes.
+   Only the decorative loops actually cost anything behind a blur, so only those
+   are paused. */
+html.modal-open .video-bg,
+html.modal-open .bg-streaks,
+html.modal-open .streak,
+html.modal-open .hero-orb,
+html.modal-open [class*="float"],
+html.modal-open [class*="pulse"] {
     animation-play-state: paused !important;
 }
 

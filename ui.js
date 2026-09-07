@@ -141,7 +141,15 @@
      * @param {string} title  headline, e.g. "Extracting tender"
      * @param {string[]} steps optional lines cycled every ~2.2s to show real stages
      */
-    function showLoader(title, steps) {
+    /**
+     * @param {string}   title
+     * @param {string[]} steps
+     * @param {object}   opts  {immediate:true} skips the arming delay. Used when a page
+     *                         opens straight into a fetch: there the delay lets the empty
+     *                         page paint first and the overlay arrives late, which looks
+     *                         like the page loaded and then broke.
+     */
+    function showLoader(title, steps, opts) {
         if (!loaderEl) {
             loaderEl = buildLoader();
             document.body.appendChild(loaderEl);
@@ -169,7 +177,8 @@
         // never appears, so fast operations stay silent instead of strobing.
         clearTimeout(loaderShowTimer);
         loaderShownAt = 0;
-        loaderShowTimer = setTimeout(function () {
+
+        var reveal = function () {
             // Same reason as the login modal: blurring moving pixels is expensive.
             document.documentElement.classList.add('modal-open', 'loader-open');
             var video = document.querySelector('video.video-bg');
@@ -178,7 +187,10 @@
             void loaderEl.offsetWidth;
             loaderEl.classList.add('open');
             loaderShownAt = Date.now();
-        }, LOADER_DELAY_MS);
+        };
+
+        if (opts && opts.immediate) reveal();
+        else loaderShowTimer = setTimeout(reveal, LOADER_DELAY_MS);
     }
 
     function hideLoader() {

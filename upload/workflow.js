@@ -38,6 +38,51 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+/* Two independent filters apply at once: the verdict (OK/WARN/FAIL) and the rate
+   source (DSR/IRUSSOR/NS). A vetter usually works one rate book at a time, so the
+   source tags are not just a second copy of the status tabs. */
+var wfFilters = { status: 'all', source: 'all' };
+
+function applyRowFilters() {
+    var rows = document.querySelectorAll('.wf-table tbody tr');
+    var shown = 0;
+    rows.forEach(function (row) {
+        var st = row.getAttribute('data-status');
+        var src = row.getAttribute('data-source');
+        var okStatus = wfFilters.status === 'all' || st === wfFilters.status;
+        var okSource = wfFilters.source === 'all' || src === wfFilters.source;
+        var visible = okStatus && okSource;
+        row.style.display = visible ? '' : 'none';
+        if (visible) shown++;
+    });
+
+    var note = document.getElementById('rmShowing');
+    if (note) {
+        note.textContent = (wfFilters.status === 'all' && wfFilters.source === 'all')
+            ? 'Showing all ' + rows.length + ' items'
+            : 'Showing ' + shown + ' of ' + rows.length + ' items';
+    }
+
+    var empty = document.getElementById('rmEmptyFilter');
+    if (empty) empty.hidden = shown !== 0 || rows.length === 0;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-filter-kind]').forEach(function (group) {
+        var kind = group.getAttribute('data-filter-kind');
+        group.querySelectorAll('.wf-filter-tab').forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                group.querySelectorAll('.wf-filter-tab').forEach(function (t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+                wfFilters[kind] = kind === 'source'
+                    ? tab.getAttribute('data-source')
+                    : tab.getAttribute('data-filter');
+                applyRowFilters();
+            });
+        });
+    });
+});
+
 // Filter table rows
 function filterTable(filter) {
     var rows = document.querySelectorAll('.wf-table tbody tr');
@@ -95,6 +140,14 @@ function renderStepper() {
                '</' + (clickable ? 'a' : 'div') + '>';
     }).join('');
 
+    // Mark backward navigation so the destination knows not to re-announce work
+    // it has already finished.
+    host.querySelectorAll('a.wf-stepp').forEach(function (a) {
+        a.addEventListener('click', function () {
+            try { sessionStorage.setItem('raiec_nav_back', '1'); } catch (e) { /* ignore */ }
+        });
+    });
+
     // Fill the rail up to the current stage.
     var pct = ((current - 1) / (WF_STEPS.length - 1)) * 100;
     host.style.setProperty('--wf-progress', pct + '%');
@@ -102,6 +155,30 @@ function renderStepper() {
 }
 
 document.addEventListener('DOMContentLoaded', renderStepper);
+
+
+/* -----------------------------------------------------------------------------
+   Arrival loading
+   Two rules. A page that opens straight into a fetch shows the overlay
+   immediately, so it covers the page from first paint instead of appearing after
+   the empty page has already rendered. And returning to a completed step shows
+   nothing at all: that work is already done, so an overlay would imply it is
+   being redone.
+   -------------------------------------------------------------------------- */
+function isReturningToCompletedStep() {
+    try {
+        var back = sessionStorage.getItem('raiec_nav_back') === '1';
+        sessionStorage.removeItem('raiec_nav_back');   // one navigation only
+        return back;
+    } catch (e) { return false; }
+}
+
+var WF_RETURNING = isReturningToCompletedStep();
+
+function showArrivalLoader(title, steps) {
+    if (WF_RETURNING) return;                 // already done; do not re-announce it
+    if (window.RAIEC_UI) RAIEC_UI.showLoader(title, steps, { immediate: true });
+}
 
 // Navigate between steps.
 // A hard cut between pages made the flow feel like five separate screens rather than
@@ -202,6 +279,8 @@ function uploadEstimate() {
     if (btn) { btn.disabled = true; btn.textContent = 'Uploading & extracting...'; }
     // A blurred overlay with the real stage named, rather than a progress bar that
     // is not measuring anything.
+    // Submitting is a deliberate action on this page, not an arrival, so it uses the
+    // normal armed loader: if the parse were ever instant, no overlay should flash.
     if (window.RAIEC_UI) {
         RAIEC_UI.showLoader('Reading the tender', [
             'Uploading the document…',
@@ -225,9 +304,16 @@ function uploadEstimate() {
         .then(function(r) {
             if (!r.ok) {
                 if (window.RAIEC_UI) RAIEC_UI.hideLoader();
+                if (btn) { btn.disabled = false; btn.textContent = 'Submit for validation'; }
+                // A duplicate is not really an error, it is a decision point: the officer
+                // needs to see which submission this collides with, so it gets a dialog
+                // rather than a line of red text under the form.
+                if (r.status === 409 && r.body && r.body.existing) {
+                    showDuplicateDialog(r.body.existing);
+                    return;
+                }
                 var msg = (r.body && r.body.message) ? r.body.message : ('Upload failed (HTTP ' + r.status + ').');
                 showUploadMessage(msg, 'error');
-                if (btn) { btn.disabled = false; btn.textContent = 'Submit for validation'; }
                 return;
             }
             saveState('tenderId', r.body.id);
@@ -270,13 +356,11 @@ function initOcrExtract() {
     }
     tbody.innerHTML = '<tr><td colspan="3">Loading extracted items...</td></tr>';
 
-    if (window.RAIEC_UI) {
-        RAIEC_UI.showLoader('Extracting the estimate', [
+    showArrivalLoader('Extracting the estimate', [
             'Reading schedules…',
             'Collecting line items and rate breakups…',
             'Separating Non-Scheduled items…'
-        ]);
-    }
+    ]);
     fetch(RAIEC_API + '/tenders/' + id)
         .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
         .then(function(t) { renderOcr(t); if (window.RAIEC_UI) RAIEC_UI.hideLoader(); })
@@ -411,14 +495,12 @@ function initRateMatch() {
         return;
     }
     tbody.innerHTML = '<tr><td colspan="9">Running rate match…</td></tr>';
-    if (window.RAIEC_UI) {
-        RAIEC_UI.showLoader('Matching rates', [
+    showArrivalLoader('Matching rates', [
             'Reading the extracted line items…',
             'Looking up IRUSSOR and CPWD DSR…',
             'Checking Non-Scheduled items against the LAR dataset…',
             'Calculating variance against tolerance…'
-        ]);
-    }
+    ]);
     fetch(RAIEC_API + '/tenders/' + id + '/rate-match')
         .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
         .then(function(d) { renderRateMatch(d); if (window.RAIEC_UI) RAIEC_UI.hideLoader(); })
@@ -463,7 +545,7 @@ function renderRateMatch(d) {
         }
         var st = it.status === 'OK' ? 'ok' : (it.status === 'WARN' ? 'warn' : (it.status === 'FAIL' ? 'fail' : 'noref'));
         var refCell = buildRefCell(it);
-        return '<tr data-status="' + st + '">' +
+        return '<tr data-status="' + st + '" data-source="' + escapeHtml(it.source || '') + '">' +
             '<td>' + escapeHtml(truncateRm(it.description || it.itemCode, 64)) + '</td>' +
             '<td>' + escapeHtml(it.source || '') + '</td>' +
             '<td>' + (it.quantity != null ? formatNum(it.quantity) : '—') + '</td>' +
@@ -475,6 +557,10 @@ function renderRateMatch(d) {
             '<td>' + rmStatusBadge(it.status, it.source) + '</td>' +
         '</tr>';
     }).join('');
+
+    // A re-render (for example after the benchmark changes) must not silently drop
+    // the filters the vetter had applied.
+    applyRowFilters();
 }
 
 // Reference column: the published rate and where it came from. Rates are compared
@@ -546,14 +632,12 @@ function initAiAnalysis() {
         box.innerHTML = '<div class="wf-ai-card"><div class="wf-ai-content"><div class="wf-ai-desc">No tender loaded. Please upload an estimate first.</div></div></div>';
         return;
     }
-    if (window.RAIEC_UI) {
-        RAIEC_UI.showLoader('Running analysis', [
+    showArrivalLoader('Running analysis', [
             'Checking rates against tolerance…',
             'Comparing NS items with accepted rates…',
             'Verifying quantity × rate = amount…',
             'Looking for duplicate proposals…'
-        ]);
-    }
+    ]);
     fetch(RAIEC_API + '/tenders/' + id + '/ai-analysis')
         .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
         .then(function(d) { renderAiAnalysis(d); if (window.RAIEC_UI) RAIEC_UI.hideLoader(); })
@@ -631,13 +715,11 @@ function initOfficerReview() {
         return;
     }
     var base = RAIEC_API + '/tenders/' + id;
-    if (window.RAIEC_UI) {
-        RAIEC_UI.showLoader('Preparing the review', [
+    showArrivalLoader('Preparing the review', [
             'Loading the tender record…',
             'Fetching rate comparison…',
             'Collecting analysis results…'
-        ]);
-    }
+    ]);
     Promise.all([
         fetch(base).then(orOkJson),
         fetch(base + '/rate-match').then(orOkJson),
@@ -1087,4 +1169,153 @@ function showOutcome(action, message, body) {
             sessionStorage.removeItem('raiec_uploadedFile');
         } catch (e) { /* ignore */ }
     });
+}
+
+
+/* =============================================================================
+   Rate report export
+   CSV rather than a formatted document: this sheet exists to be opened in Excel
+   and worked through, which is what a vetter actually does with it. Honours the
+   active filters, because exporting a filtered view is usually the point.
+   ============================================================================= */
+function exportRateReport() {
+    var rows = Array.prototype.slice.call(document.querySelectorAll('.wf-table tbody tr'))
+        .filter(function (r) { return r.style.display !== 'none'; });
+    if (!rows.length) { alert('Nothing to export with the current filters.'); return; }
+
+    var summary = getState('tenderSummary') || {};
+    var header = ['Description', 'Source', 'Qty', 'Unit', 'Quoted rate', 'Amount',
+                  'Reference rate', 'Reference source', 'Variance %', 'Verdict'];
+
+    function cell(v) {
+        var t = (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim();
+        // Quote everything and double any embedded quote: descriptions contain commas.
+        return '"' + t.replace(/"/g, '""') + '"';
+    }
+
+    var lines = [header.map(cell).join(',')];
+    rows.forEach(function (tr) {
+        var td = tr.querySelectorAll('td');
+        if (td.length < 9) return;
+        // The reference cell holds the rate on one line and its source on the next.
+        var refParts = td[6].innerText.split('\n');
+        lines.push([
+            td[0].innerText,
+            td[1].innerText,
+            td[2].innerText,
+            td[3].innerText,
+            td[4].innerText,
+            td[5].innerText,
+            refParts[0] || '',
+            refParts.slice(1).join(' ').trim(),
+            td[7].innerText,
+            td[8].innerText
+        ].map(cell).join(','));
+    });
+
+    // BOM so Excel opens UTF-8 (and the rupee sign) correctly instead of mojibake.
+    var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'RAIEC-rates-' + String(summary.tenderNo || 'tender').replace(/[^\w.-]+/g, '-') + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+}
+
+
+/* =============================================================================
+   Duplicate tender
+   ============================================================================= */
+
+var WF_STATUS_LABELS = {
+    UPLOADED: 'Uploaded',
+    OCR_EXTRACTED: 'Extracted',
+    RATE_MATCHED: 'Rate matched',
+    AI_ANALYZED: 'Analysed',
+    OFFICER_REVIEW: 'With the officer',
+    INFO_REQUESTED: 'Awaiting clarification',
+    APPROVED: 'Approved',
+    REJECTED: 'Rejected'
+};
+
+function wfFormatDateTime(iso) {
+    if (!iso) return 'Unknown';
+    var d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.toLocaleString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+}
+
+/**
+ * Shown when the uploaded PDF names a tender already in the system. It states what is
+ * already held and offers the only two useful moves: open the existing record, or pick
+ * a different file.
+ */
+function showDuplicateDialog(existing) {
+    var ov = document.createElement('div');
+    ov.className = 'raiec-loader open wf-dup';
+    ov.innerHTML =
+        '<div class="wf-dup-card" role="dialog" aria-modal="true" aria-labelledby="dupTitle">' +
+          '<button type="button" class="wf-outcome-close" id="dupClose" aria-label="Close">&times;</button>' +
+          '<div class="wf-dup-mark"><svg viewBox="0 0 24 24" aria-hidden="true">' +
+            '<rect x="9" y="9" width="11" height="11" rx="2"/>' +
+            '<path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>' +
+          '</svg></div>' +
+          '<h3 id="dupTitle">This tender has already been scanned</h3>' +
+          '<p class="wf-dup-sub">Nothing was uploaded. RAIEC already holds a record for this tender number.</p>' +
+          '<dl class="wf-dup-facts">' +
+            dupFact('Tender number', existing.tenderNo) +
+            dupFact('Name of work', existing.nameOfWork) +
+            dupFact('Scanned on', wfFormatDateTime(existing.uploadedAt)) +
+            dupFact('Current stage', WF_STATUS_LABELS[existing.status] || existing.status) +
+            dupFact('Original file', existing.originalFileName) +
+          '</dl>' +
+          '<div class="wf-outcome-actions">' +
+            '<button type="button" class="wf-btn wf-btn-secondary" id="dupAnother">Choose another file</button>' +
+            '<button type="button" class="wf-btn wf-btn-primary" id="dupOpen">Open the existing tender</button>' +
+          '</div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    document.documentElement.classList.add('modal-open');
+
+    function close() {
+        ov.classList.remove('open');
+        document.documentElement.classList.remove('modal-open');
+        setTimeout(function () { ov.remove(); }, 260);
+    }
+    document.getElementById('dupClose').addEventListener('click', close);
+    ov.addEventListener('mousedown', function (e) { if (e.target === ov) close(); });
+    document.addEventListener('keydown', function esc(e) {
+        if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
+    });
+
+    document.getElementById('dupAnother').addEventListener('click', function () {
+        close();
+        raiecSelectedFile = null;
+        var preview = document.querySelector('.wf-file-preview');
+        if (preview) preview.style.display = 'none';
+        var input = document.getElementById('fileInput');
+        if (input) { input.value = ''; input.click(); }
+    });
+
+    // Jump straight to the existing record rather than making them find it.
+    document.getElementById('dupOpen').addEventListener('click', function () {
+        saveState('tenderId', existing.id);
+        saveState('tenderSummary', {
+            tenderNo: existing.tenderNo,
+            nameOfWork: existing.nameOfWork
+        });
+        close();
+        navigateTo('step2-ocr-extract.html');
+    });
+}
+
+function dupFact(label, value) {
+    if (!value) return '';
+    return '<div><dt>' + escapeHtml(label) + '</dt><dd>' + escapeHtml(String(value)) + '</dd></div>';
 }

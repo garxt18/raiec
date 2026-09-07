@@ -22,9 +22,33 @@ public class ApiExceptionHandler {
                 .body(new ApiError(Instant.now(), status.value(), status.getReasonPhrase(), message));
     }
 
+    /**
+     * A duplicate returns the existing record alongside the message, so the client can
+     * show the officer which submission this collides with instead of a bare "already
+     * exists" that leaves them guessing.
+     */
     @ExceptionHandler(DuplicateTenderException.class)
-    public ResponseEntity<ApiError> handleDuplicate(DuplicateTenderException e) {
-        return build(HttpStatus.CONFLICT, e.getMessage());
+    public ResponseEntity<DuplicateError> handleDuplicate(DuplicateTenderException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new DuplicateError(
+                Instant.now().toString(),
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                e.getMessage(),
+                new DuplicateDetail(
+                        e.getExistingId(),
+                        e.getTenderNo(),
+                        e.getNameOfWork(),
+                        e.getStatus(),
+                        e.getUploadedAt() == null ? null : e.getUploadedAt().toString(),
+                        e.getOriginalFileName())));
+    }
+
+    public record DuplicateDetail(Long id, String tenderNo, String nameOfWork,
+                                  String status, String uploadedAt, String originalFileName) {
+    }
+
+    public record DuplicateError(String timestamp, int status, String error,
+                                 String message, DuplicateDetail existing) {
     }
 
     @ExceptionHandler(TenderNotFoundException.class)

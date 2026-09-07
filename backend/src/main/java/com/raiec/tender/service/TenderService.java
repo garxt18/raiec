@@ -60,8 +60,14 @@ public class TenderService {
         if (parsed.getTenderNo() == null || parsed.getTenderNo().isBlank()) {
             throw new TenderParseException("Could not read a tender number from the PDF.");
         }
-        if (tenderRepository.existsByTenderNo(parsed.getTenderNo())) {
-            throw new DuplicateTenderException(parsed.getTenderNo());
+        // Look the existing one up rather than just reporting a clash: the officer needs
+        // to know WHICH submission this collides with before deciding what to do.
+        Tender existing = tenderRepository.findByTenderNo(parsed.getTenderNo()).orElse(null);
+        if (existing != null) {
+            throw new DuplicateTenderException(
+                    existing.getTenderNo(), existing.getId(), existing.getNameOfWork(),
+                    existing.getStatus() != null ? existing.getStatus().name() : null,
+                    existing.getCreatedAt(), existing.getOriginalFileName());
         }
 
         parsed.setOriginalFileName(originalFileName);

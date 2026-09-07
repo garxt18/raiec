@@ -70,12 +70,21 @@
                 <h2 class="wf-section-title">Line-item comparison</h2>
                 <p class="wf-section-subtitle">Comparing quoted rate against USSOR, DSR, and Last Accepted Rate (LAR) references.</p>
             </div>
-            <div class="wf-filter-tabs">
+            <div class="wf-filter-group">
+              <div class="wf-filter-tabs" data-filter-kind="status">
                 <button class="wf-filter-tab active" data-filter="all">All</button>
                 <button class="wf-filter-tab" data-filter="ok">OK</button>
                 <button class="wf-filter-tab" data-filter="warn">WARN</button>
                 <button class="wf-filter-tab" data-filter="fail">FAIL</button>
                 <button class="wf-filter-tab" data-filter="noref">No ref</button>
+              </div>
+              <!-- Source tags: a vetter usually works one rate book at a time. -->
+              <div class="wf-filter-tabs wf-filter-source" data-filter-kind="source">
+                <button class="wf-filter-tab active" data-source="all">All sources</button>
+                <button class="wf-filter-tab" data-source="DSR">DSR</button>
+                <button class="wf-filter-tab" data-source="IRUSSOR">IRUSSOR</button>
+                <button class="wf-filter-tab" data-source="NS">NS</button>
+              </div>
             </div>
         </div>
 
@@ -104,15 +113,9 @@
             </tbody>
         </table>
 
-        <div class="wf-legend">
-            <div class="wf-legend-item"><div class="wf-legend-dot" style="background:var(--accent-green)"></div> OK — at or below reference (≤5% over)</div>
-            <div class="wf-legend-item"><div class="wf-legend-dot" style="background:var(--accent-orange)"></div> WARN — 5–10% over reference</div>
-            <div class="wf-legend-item"><div class="wf-legend-dot" style="background:var(--accent-red)"></div> FAIL — more than 10% over reference</div>
-        </div>
-
         <div class="wf-actions">
             <button class="wf-btn wf-btn-primary" onclick="navigateTo('step4-ai-analysis.html')">Proceed to AI analysis</button>
-            <button class="wf-btn wf-btn-secondary">Export rate report</button>
+            <button class="wf-btn wf-btn-secondary" id="wfExportBtn" type="button" onclick="exportRateReport()">Export rate report (CSV)</button>
         </div>
 
         <footer class="wf-footer">
