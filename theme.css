@@ -32,6 +32,7 @@
 
     /* Translucent panels. These sit over the video background, so the alpha is
        part of the design and cannot be flattened to a solid colour. */
+    --panel-30: rgba(30, 41, 59, 0.30);
     --panel-40: rgba(30, 41, 59, 0.40);
     --panel-50: rgba(30, 41, 59, 0.50);
     --panel-60: rgba(30, 41, 59, 0.60);
@@ -86,6 +87,7 @@
     --nav-blur: saturate(180%) blur(18px);
 
     /* --- Modal / overlay --- */
+    --video-overlay: rgba(10, 10, 26, 0.75);
     --overlay-bg: rgba(5, 5, 20, 0.7);
     --modal-bg: rgba(13, 17, 30, 0.94);
 
@@ -130,6 +132,7 @@
     --surface-hover: rgba(15, 23, 42, 0.05);
 
 
+    --panel-30: rgba(255, 255, 255, 0.45);
     --panel-40: rgba(255, 255, 255, 0.55);
     --panel-50: rgba(255, 255, 255, 0.66);
     --panel-60: rgba(255, 255, 255, 0.74);
@@ -177,6 +180,7 @@
     --nav-bg-scrolled: rgba(255, 255, 255, 0.86);
     --nav-border: rgba(15, 23, 42, 0.10);
 
+    --video-overlay: rgba(244, 247, 251, 0.82);
     --overlay-bg: rgba(15, 23, 42, 0.42);
     --modal-bg: rgba(255, 255, 255, 0.97);
 }
@@ -199,6 +203,7 @@
         --surface-hover: rgba(15, 23, 42, 0.05);
 
     
+    --panel-30: rgba(255, 255, 255, 0.45);
     --panel-40: rgba(255, 255, 255, 0.55);
     --panel-50: rgba(255, 255, 255, 0.66);
     --panel-60: rgba(255, 255, 255, 0.74);
@@ -245,7 +250,8 @@
         --nav-bg-scrolled: rgba(255, 255, 255, 0.86);
         --nav-border: rgba(15, 23, 42, 0.10);
 
-        --overlay-bg: rgba(15, 23, 42, 0.42);
+        --video-overlay: rgba(244, 247, 251, 0.82);
+    --overlay-bg: rgba(15, 23, 42, 0.42);
         --modal-bg: rgba(255, 255, 255, 0.97);
     }
 }
@@ -328,8 +334,8 @@ body,
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     border: 1px solid var(--border-subtle);
     background: var(--surface-1);
@@ -360,8 +366,8 @@ body,
 }
 
 .theme-toggle svg {
-    width: 17px;
-    height: 17px;
+    width: 19px;
+    height: 19px;
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
@@ -604,7 +610,7 @@ html.modal-open *:not(.raiec-loader):not(.raiec-loader *):not(.login-modal):not(
     table { font-size: 13px; }
     th, td { padding: 8px 10px !important; }
 
-    .theme-toggle { width: 32px; height: 32px; }
+    .theme-toggle { width: 36px; height: 36px; }
 }
 
 /* Touch targets: anything tappable needs a reasonable hit area. */
@@ -615,4 +621,121 @@ html.modal-open *:not(.raiec-loader):not(.raiec-loader *):not(.login-modal):not(
     a.nav-link {
         min-height: 40px;
     }
+}
+
+/* The toggle and the avatar were sitting flush against each other. Give every nav
+   trailing group real spacing, and match the avatar to the toggle's size so the
+   pair reads as one deliberate control cluster. */
+.wf-nav-right,
+.td-nav-right,
+.nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.wf-avatar,
+.td-avatar,
+.g-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+    .wf-nav-right,
+    .td-nav-right,
+    .nav-menu { gap: 10px; }
+
+    .wf-avatar,
+    .td-avatar,
+    .g-avatar { width: 36px; height: 36px; }
+}
+
+/* ==========================================================================
+   Light-theme refinement
+   Surfaces designed for a dark page do not simply invert. On dark, a
+   semi-transparent panel over a coloured background reads as depth; on light
+   the same panel just looks washed out and loses its edge. These rules restore
+   definition: more opaque panels, a real (soft) shadow, and a visible border.
+   ========================================================================== */
+
+:root[data-theme="light"] .td-card,
+:root[data-theme="light"] .wf-card,
+:root[data-theme="light"] .panel,
+:root[data-theme="light"] .feature-card,
+:root[data-theme="light"] .wf-summary-card,
+:root[data-theme="light"] .td-stat-card,
+:root[data-theme="light"] .lar-kpi,
+:root[data-theme="light"] .kpi-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="light"] .td-card:hover,
+:root[data-theme="light"] .feature-card:hover,
+:root[data-theme="light"] .td-stat-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: #cbd5e1;
+}
+
+/* The decorative colour streaks are tuned for a near-black page. At full
+   strength on white they muddy every surface sitting above them. */
+:root[data-theme="light"] .bg-streaks,
+:root[data-theme="light"] .video-bg-wrapper {
+    opacity: 0.35;
+}
+
+/* Inputs need a visible field edge on white, not a barely-there tint. */
+:root[data-theme="light"] .td-input,
+:root[data-theme="light"] .td-select,
+:root[data-theme="light"] .wf-form-input,
+:root[data-theme="light"] .wf-textarea,
+:root[data-theme="light"] .login-input,
+:root[data-theme="light"] .search-input {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .td-input::placeholder,
+:root[data-theme="light"] .search-input::placeholder,
+:root[data-theme="light"] .wf-form-input::placeholder {
+    color: var(--text-muted);
+}
+
+:root[data-theme="light"] .td-input:focus,
+:root[data-theme="light"] .td-select:focus,
+:root[data-theme="light"] .search-input:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px var(--tint-blue);
+    outline: none;
+}
+
+/* Tables: header and row separators must be light-on-light, not dark rules. */
+:root[data-theme="light"] .td-table th,
+:root[data-theme="light"] .wf-table th {
+    background: var(--bg-card-light);
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+:root[data-theme="light"] .td-table td,
+:root[data-theme="light"] .wf-table td {
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .td-table tbody tr:hover,
+:root[data-theme="light"] .wf-table tbody tr:hover {
+    background: var(--surface-1);
+}
+
+/* The signed-in popover is built in JS with inline styles; make sure it follows. */
+:root[data-theme="light"] .raiec-user-menu {
+    background: #ffffff !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--shadow-lg) !important;
 }

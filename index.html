@@ -2,6 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script>
+        // Must run before any stylesheet is applied, otherwise the browser paints the
+        // default (dark) theme first and the correction shows up as a flash.
+        (function () {
+            try {
+                var t = localStorage.getItem('raiec_theme');
+                if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+            } catch (e) { /* storage blocked: fall back to prefers-color-scheme */ }
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Railway AI Tender Analysis Platform - Smarter Analysis, Stronger Decisions. Intelligent Rate Analysis and Tender Evaluation.">
     <title>NWR - Railway AI Tender Analysis Platform</title>
@@ -10,15 +20,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="theme.css">
     <link rel="stylesheet" href="styles.css">
-    <script>
-        // Applied before first paint so the page never flashes the wrong theme.
-        (function () {
-            try {
-                var t = localStorage.getItem('raiec_theme');
-                if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
-            } catch (e) { /* storage blocked: fall back to prefers-color-scheme */ }
-        })();
-    </script>
 </head>
 <body>
     <!-- Video Background -->
@@ -420,25 +421,25 @@
     <!-- About Section -->
     <section class="about-section" id="about" aria-labelledby="about-heading" style="max-width:1080px;margin:0 auto;padding:70px 5vw 90px;">
         <div style="text-align:center;margin-bottom:14px;">
-            <span style="display:inline-block;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#22d3ee;font-weight:700;padding:6px 14px;border:1px solid rgba(34,211,238,.3);border-radius:999px;background:rgba(34,211,238,.06);">About</span>
+            <span style="display:inline-block;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--accent-cyan-bright);font-weight:700;padding:6px 14px;border:1px solid var(--accent-cyan);border-radius:999px;background:var(--tint-blue);">About</span>
         </div>
-        <h2 id="about-heading" style="text-align:center;font-size:clamp(26px,4vw,40px);font-weight:800;margin-bottom:16px;color:#fff;">What is RAIEC?</h2>
-        <p style="text-align:center;max-width:760px;margin:0 auto 40px;color:#93a0b8;font-size:clamp(15px,2vw,18px);line-height:1.7;">
-            <strong style="color:#e7ecf5;">RAIEC</strong> — the Railway Automated Intelligent Estimate Checker — is an internal tool for North Western Railway's Civil &amp; Construction unit. It reads IREPS tender estimate PDFs, structures every line item, and checks each quoted rate against the official <strong style="color:#e7ecf5;">IRUSSOR</strong> and <strong style="color:#e7ecf5;">CPWD&nbsp;DSR</strong> schedules and the <strong style="color:#e7ecf5;">Last Accepted Rate (LAR)</strong> dataset — then supports an officer approve / reject workflow that keeps the LAR growing.
+        <h2 id="about-heading" style="text-align:center;font-size:clamp(26px,4vw,40px);font-weight:800;margin-bottom:16px;color:var(--text-primary);">What is RAIEC?</h2>
+        <p style="text-align:center;max-width:760px;margin:0 auto 40px;color:var(--text-secondary);font-size:clamp(15px,2vw,18px);line-height:1.7;">
+            <strong style="color:var(--text-primary);">RAIEC</strong> — the Railway Automated Intelligent Estimate Checker — is an internal tool for North Western Railway's Civil &amp; Construction unit. It reads IREPS tender estimate PDFs, structures every line item, and checks each quoted rate against the official <strong style="color:var(--text-primary);">IRUSSOR</strong> and <strong style="color:var(--text-primary);">CPWD&nbsp;DSR</strong> schedules and the <strong style="color:var(--text-primary);">Last Accepted Rate (LAR)</strong> dataset — then supports an officer approve / reject workflow that keeps the LAR growing.
         </p>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;">
-            <div style="background:rgba(18,22,43,.7);border:1px solid rgba(255,255,255,.08);border-top:2px solid rgba(59,130,246,.5);border-radius:16px;padding:24px;">
-                <h3 style="font-size:17px;font-weight:700;color:#fff;margin-bottom:8px;">Automated extraction</h3>
-                <p style="color:#93a0b8;font-size:14.5px;line-height:1.6;">Schedules, line items, rate breakups and Non-Scheduled items are parsed straight from the tender PDF — no manual data entry.</p>
+            <div style="background:var(--panel-72);border:1px solid var(--border-subtle);border-top:2px solid rgba(59,130,246,.5);border-radius:16px;padding:24px;">
+                <h3 style="font-size:17px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Automated extraction</h3>
+                <p style="color:var(--text-secondary);font-size:14.5px;line-height:1.6;">Schedules, line items, rate breakups and Non-Scheduled items are parsed straight from the tender PDF — no manual data entry.</p>
             </div>
-            <div style="background:rgba(18,22,43,.7);border:1px solid rgba(255,255,255,.08);border-top:2px solid rgba(139,92,246,.5);border-radius:16px;padding:24px;">
-                <h3 style="font-size:17px;font-weight:700;color:#fff;margin-bottom:8px;">Accurate rate matching</h3>
-                <p style="color:#93a0b8;font-size:14.5px;line-height:1.6;">Item-code matching against DSR &amp; IRUSSOR, a fuzzy-description fallback, and LAR matching for NS items — with a clear OK / WARN / FAIL verdict.</p>
+            <div style="background:var(--panel-72);border:1px solid var(--border-subtle);border-top:2px solid rgba(139,92,246,.5);border-radius:16px;padding:24px;">
+                <h3 style="font-size:17px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Accurate rate matching</h3>
+                <p style="color:var(--text-secondary);font-size:14.5px;line-height:1.6;">Item-code matching against DSR &amp; IRUSSOR, a fuzzy-description fallback, and LAR matching for NS items — with a clear OK / WARN / FAIL verdict.</p>
             </div>
-            <div style="background:rgba(18,22,43,.7);border:1px solid rgba(255,255,255,.08);border-top:2px solid rgba(52,211,153,.5);border-radius:16px;padding:24px;">
-                <h3 style="font-size:17px;font-weight:700;color:#fff;margin-bottom:8px;">Decisions that compound</h3>
-                <p style="color:#93a0b8;font-size:14.5px;line-height:1.6;">Every approved estimate feeds accepted rates back into the LAR dataset, so each new check is grounded in a richer history.</p>
+            <div style="background:var(--panel-72);border:1px solid var(--border-subtle);border-top:2px solid rgba(52,211,153,.5);border-radius:16px;padding:24px;">
+                <h3 style="font-size:17px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Decisions that compound</h3>
+                <p style="color:var(--text-secondary);font-size:14.5px;line-height:1.6;">Every approved estimate feeds accepted rates back into the LAR dataset, so each new check is grounded in a richer history.</p>
             </div>
         </div>
 
@@ -447,7 +448,51 @@
             <a href="upload/step1-upload.html" class="btn btn-primary">Upload an estimate</a>
         </div>
 
-        <p style="text-align:center;margin-top:54px;color:#5b6478;font-size:13px;">RAIEC · North Western Railway — Civil &amp; Construction · Internal estimate-vetting tool</p>
+        <p style="text-align:center;margin-top:54px;color:var(--text-muted);font-size:13px;">RAIEC · North Western Railway — Civil &amp; Construction · Internal estimate-vetting tool</p>
+    </section>
+
+
+    <!-- ===== North Western Railway ===== -->
+    <section class="nwr-section" id="nwr" aria-labelledby="nwr-heading">
+        <div class="nwr-inner">
+            <div class="nwr-media">
+                <!-- Drop the photograph at images/nwr-headquarters.jpg.
+                     If it is missing the whole figure removes itself, so the section
+                     never shows a broken-image icon. -->
+                <img src="images/nwr-headquarters.jpg"
+                     alt="North Western Railway headquarters, Jaipur"
+                     loading="lazy"
+                     onerror="var w=this.closest('.nwr-inner'); this.closest('.nwr-media').remove(); if(w) w.classList.add('no-media');">
+            </div>
+
+            <div class="nwr-copy">
+                <span class="nwr-eyebrow">The organisation</span>
+                <h2 id="nwr-heading">North Western Railway</h2>
+                <p>
+                    North Western Railway is one of the zones of Indian Railways, with its
+                    headquarters at <strong>Jaipur, Rajasthan</strong>. Formed in October 2002,
+                    the zone covers Rajasthan and adjoining parts of Haryana, Punjab and Gujarat,
+                    and is organised into four operating divisions.
+                </p>
+                <p>
+                    RAIEC was built for the zone's <strong>Civil &amp; Construction</strong> unit,
+                    where every proposed work — a new station building, a road under bridge, track
+                    renewal — is tendered through IREPS and must be vetted before it is awarded.
+                </p>
+
+                <ul class="nwr-divisions" aria-label="Operating divisions">
+                    <li><span>Jaipur</span><small>Headquarters</small></li>
+                    <li><span>Ajmer</span><small>Division</small></li>
+                    <li><span>Bikaner</span><small>Division</small></li>
+                    <li><span>Jodhpur</span><small>Division</small></li>
+                </ul>
+
+                <p class="nwr-note">
+                    Estimates processed by RAIEC in this project came from Jaipur, Ajmer and
+                    Bikaner divisions.
+                </p>
+            </div>
+        </div>
     </section>
 
     <!-- Login Modal -->

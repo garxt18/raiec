@@ -544,7 +544,9 @@ function openTender(id) {
         if (btn) { btn.textContent = 'Logging in…'; btn.disabled = true; }
 
         RAIEC.login(u, p).then(function () {
-            window.location.href = 'tender-dashboard.html';
+            // Stay on the home page: signing in is not a request to go somewhere.
+            closeLoginModal();
+            window.location.reload();
         }).catch(function (e) {
             err.textContent = (e && e.message) ? e.message : 'Login failed. Please try again.';
             if (btn) { btn.textContent = label || 'LOGIN'; btn.disabled = false; }

@@ -2,6 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script>
+        // Must run before any stylesheet is applied, otherwise the browser paints the
+        // default (dark) theme first and the correction shows up as a flash.
+        (function () {
+            try {
+                var t = localStorage.getItem('raiec_theme');
+                if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+            } catch (e) { /* storage blocked: fall back to prefers-color-scheme */ }
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="RAIEC Reports - Generate, view and export validation and procurement reports.">
     <title>Reports – RAIEC</title>
@@ -11,15 +21,6 @@
     <link rel="stylesheet" href="theme.css">
     <link rel="stylesheet" href="tender-dashboard.css">
     <link rel="stylesheet" href="reports.css">
-    <script>
-        // Applied before first paint so the page never flashes the wrong theme.
-        (function () {
-            try {
-                var t = localStorage.getItem('raiec_theme');
-                if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
-            } catch (e) { /* storage blocked: fall back to prefers-color-scheme */ }
-        })();
-    </script>
 </head>
 <body>
     <!-- Background -->
