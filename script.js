@@ -369,7 +369,7 @@ function togglePassword() {
     document.querySelectorAll('.kpi-change').forEach(function (el) { el.remove(); });
 
     // ---- Stats: KPIs + donut + alerts ----
-    fetch(API + '/tenders/stats')
+    raiecFetch(API + '/tenders/stats')
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function (s) {
             setKpi('homeTotal', s.total);
@@ -385,7 +385,7 @@ function togglePassword() {
         .catch(function () { /* backend offline: leave zeros + static alert fallback */ });
 
     // ---- Recent tenders table ----
-    fetch(API + '/tenders')
+    raiecFetch(API + '/tenders')
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function (list) {
             tendersCache = Array.isArray(list) ? list : [];

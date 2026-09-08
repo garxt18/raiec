@@ -365,7 +365,7 @@
             err.hidden = true;
             saveBtn.disabled = true;
             saveBtn.textContent = 'Saving…';
-            fetch(API + '/lar', {
+            raiecFetch(API + '/lar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -396,7 +396,7 @@
 
     // Re-pull the dataset so the table, KPIs and recent list all agree.
     function reloadLar() {
-        fetch(API + '/lar')
+        raiecFetch(API + '/lar')
             .then(function (r) { return r.json(); })
             .then(function (list) {
                 var mapped = list.map(function (r) {
@@ -455,7 +455,7 @@
 
     var allTenders = [];
 
-    fetch(API + '/tenders')
+    raiecFetch(API + '/tenders')
         .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function(list) {
             allTenders = Array.isArray(list) ? list : [];
@@ -882,7 +882,7 @@ function viewTender(id) {
 (function() {
     var API = (window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiBase) || 'http://localhost:8080/api';
 
-    fetch(API + '/tenders/stats')
+    raiecFetch(API + '/tenders/stats')
         .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function(s) { applyStats(s); })
         .catch(function() { /* server offline: keep static demo numbers */ });
@@ -991,7 +991,7 @@ function viewTender(id) {
     if (!document.getElementById('larTableBody')) return;
     var API = (window.RAIEC_CONFIG && window.RAIEC_CONFIG.apiBase) || 'http://localhost:8080/api';
 
-    fetch(API + '/lar')
+    raiecFetch(API + '/lar')
         .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function(list) {
             var mapped = list.map(function(r) {

@@ -40,3 +40,78 @@
         isLocal: apiBase.indexOf('localhost') !== -1
     };
 })();
+
+/* =============================================================================
+   raiecFetch — fetch with a deadline and a "still working" signal.
+
+   fetch() has no timeout. A request that never answers never settles: the
+   promise neither resolves nor rejects, so a spinner spins forever and the user
+   is left guessing whether it is broken or merely slow.
+
+   That distinction matters here more than usual. The API is hosted on a free
+   tier that suspends when idle and runs on half a CPU, so real timings are:
+
+       waking from sleep    ~80s
+       upload + parse PDF   ~27s
+       rate match           ~3-5s
+
+   Those are slow but correct. A deadline has to be generous enough not to abort
+   honest work, while still ending eventually — and something has to say "still
+   going" in the meantime, or the wait is indistinguishable from a hang.
+   ============================================================================= */
+(function () {
+    var DEFAULT_TIMEOUT_MS = 150000;   // 2.5 min: covers a cold start plus a parse
+    var SLOW_AFTER_MS = 5000;          // past this, say something
+
+    /**
+     * @param {string} url
+     * @param {object} [options]  standard fetch options, plus:
+     *   {number}   timeoutMs  override the deadline
+     *   {function} onSlow     called once when the request passes SLOW_AFTER_MS
+     */
+    window.raiecFetch = function (url, options) {
+        options = options || {};
+        var timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
+        var onSlow = options.onSlow;
+
+        var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        var timedOut = false;
+
+        var timeoutId = setTimeout(function () {
+            timedOut = true;
+            if (controller) controller.abort();
+        }, timeoutMs);
+
+        var slowId = setTimeout(function () {
+            if (typeof onSlow === 'function') onSlow();
+        }, SLOW_AFTER_MS);
+
+        function clear() { clearTimeout(timeoutId); clearTimeout(slowId); }
+
+        var opts = {};
+        for (var k in options) {
+            if (k !== 'timeoutMs' && k !== 'onSlow') opts[k] = options[k];
+        }
+        if (controller) opts.signal = controller.signal;
+
+        return fetch(url, opts).then(function (res) {
+            clear();
+            return res;
+        }).catch(function (e) {
+            clear();
+            if (timedOut) {
+                var err = new Error('The server did not respond in time. It may be starting up \u2014 wait a moment and try again.');
+                err.isTimeout = true;
+                throw err;
+            }
+            // A network failure is not the same as a rejected request, and saying
+            // "failed" for both sends people looking in the wrong place.
+            if (e && (e.name === 'TypeError' || e.message === 'Failed to fetch')) {
+                var netErr = new Error('Could not reach the server. Check your connection and try again.');
+                netErr.isNetwork = true;
+                throw netErr;
+            }
+            throw e;
+        });
+    };
+})();

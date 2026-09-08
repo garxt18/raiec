@@ -293,7 +293,16 @@ function uploadEstimate() {
     var form = new FormData();
     form.append('file', raiecSelectedFile);
 
-    fetch(RAIEC_API + '/tenders/upload', { method: 'POST', body: form })
+    raiecFetch(RAIEC_API + '/tenders/upload', {
+        method: 'POST',
+        body: form,
+        // Parsing runs on half a CPU on the free tier, so ~30s is normal here and a
+        // cold start adds another minute on top.
+        timeoutMs: 180000,
+        onSlow: function () {
+            showUploadMessage('Still working. The first upload after a quiet spell also has to start the server, which can take a minute.', 'info');
+        }
+    })
         .then(function(res) {
             return res.json().then(function(body) {
                 return { ok: res.ok, status: res.status, body: body };
@@ -361,7 +370,7 @@ function initOcrExtract() {
             'Collecting line items and rate breakups…',
             'Separating Non-Scheduled items…'
     ]);
-    fetch(RAIEC_API + '/tenders/' + id)
+    raiecFetch(RAIEC_API + '/tenders/' + id)
         .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
         .then(function(t) { renderOcr(t); if (window.RAIEC_UI) RAIEC_UI.hideLoader(); })
         .catch(function() {
@@ -443,7 +452,7 @@ function decideTender(action, label, remark) {
         opts.headers = { 'Content-Type': 'application/json' };
         opts.body = JSON.stringify({ remark: remark });
     }
-    fetch(RAIEC_API + '/tenders/' + id + '/' + action, opts)
+    raiecFetch(RAIEC_API + '/tenders/' + id + '/' + action, opts)
         .then(function(res) {
             return res.json().then(function(b) {
                 return { ok: res.ok, status: res.status, body: b };
@@ -501,7 +510,7 @@ function initRateMatch() {
             'Checking Non-Scheduled items against the LAR dataset…',
             'Calculating variance against tolerance…'
     ]);
-    fetch(RAIEC_API + '/tenders/' + id + '/rate-match')
+    raiecFetch(RAIEC_API + '/tenders/' + id + '/rate-match')
         .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
         .then(function(d) { renderRateMatch(d); if (window.RAIEC_UI) RAIEC_UI.hideLoader(); })
         .catch(function() {
@@ -607,7 +616,7 @@ function initAiAssessment() {
         if (badge) badge.textContent = '';
         return;
     }
-    fetch(RAIEC_API + '/tenders/' + id + '/ai-summary')
+    raiecFetch(RAIEC_API + '/tenders/' + id + '/ai-summary')
         .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
         .then(function(d) {
             if (txt) txt.textContent = d.summary || '';
@@ -638,7 +647,7 @@ function initAiAnalysis() {
             'Verifying quantity × rate = amount…',
             'Looking for duplicate proposals…'
     ]);
-    fetch(RAIEC_API + '/tenders/' + id + '/ai-analysis')
+    raiecFetch(RAIEC_API + '/tenders/' + id + '/ai-analysis')
         .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
         .then(function(d) { renderAiAnalysis(d); if (window.RAIEC_UI) RAIEC_UI.hideLoader(); })
         .catch(function() {
@@ -793,7 +802,7 @@ function sendToOfficerReview() {
         navigateTo('step5-officer-review.html');
         return;
     }
-    fetch(RAIEC_API + '/tenders/' + id + '/send-to-review', { method: 'POST' })
+    raiecFetch(RAIEC_API + '/tenders/' + id + '/send-to-review', { method: 'POST' })
         .catch(function() {})
         .finally(function() { navigateTo('step5-officer-review.html'); });
 }
@@ -835,7 +844,7 @@ function initThresholdPanel() {
     if (!host) return;
     var isAdmin = (localStorage.getItem('raiec_role') || '').toUpperCase() === 'ADMIN';
 
-    fetch(RAIEC_API + '/settings/thresholds')
+    raiecFetch(RAIEC_API + '/settings/thresholds')
         .then(orOkJson)
         .then(function (t) { renderThresholds(host, t, isAdmin); })
         .catch(function () { host.innerHTML = '<div class="wf-th-err">Benchmark unavailable.</div>'; });
@@ -910,7 +919,7 @@ function openThresholdEditor(host, t) {
             return;
         }
         err.hidden = true;
-        fetch(RAIEC_API + '/settings/thresholds', {
+        raiecFetch(RAIEC_API + '/settings/thresholds', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
