@@ -46,14 +46,39 @@
         user: function () { return get(K.user); },
         name: function () { return get(K.name); },
         isLoggedIn: function () { return !!get(K.token); },
-        login: function (username, password) {
+        /**
+         * @param {function} [onSlow] called once the request passes SLOW_AFTER_MS, so the
+         *        caller can explain the wait instead of leaving a dead "Logging in..."
+         */
+        login: function (username, password, onSlow) {
+            // A hosted free tier suspends the service when idle, and the first request
+            // then has to start it. Without a deadline a hung request never settles:
+            // fetch neither resolves nor rejects, so the button sits on "Logging in..."
+            // indefinitely with nothing explaining why.
+            var LOGIN_TIMEOUT_MS = 60000;   // generous: a cold start can take ~45s
+            var SLOW_AFTER_MS = 4000;       // past this, say something rather than nothing
+
+            var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+            var timedOut = false;
+            var timeoutId = setTimeout(function () {
+                timedOut = true;
+                if (controller) controller.abort();
+            }, LOGIN_TIMEOUT_MS);
+            var slowId = setTimeout(function () {
+                if (typeof onSlow === 'function') onSlow();
+            }, SLOW_AFTER_MS);
+
+            function done() { clearTimeout(timeoutId); clearTimeout(slowId); }
+
             // Use the un-patched fetch so the 401 handler doesn't interfere with a failed login.
             return orig(API + '/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username, password: password })
+                body: JSON.stringify({ username: username, password: password }),
+                signal: controller ? controller.signal : undefined
             }).then(function (res) {
                 return res.json().catch(function () { return {}; }).then(function (data) {
+                    done();
                     if (!res.ok) throw new Error(data.error || 'Login failed');
                     set(K.token, data.token);
                     set(K.role, data.role);
@@ -61,6 +86,17 @@
                     set(K.name, data.displayName || data.username);
                     return data;
                 });
+            }).catch(function (e) {
+                done();
+                if (timedOut) {
+                    throw new Error('The server did not respond in time. It may be starting up — wait a moment and try again.');
+                }
+                // A network-level failure is not a wrong password, and saying so sends
+                // people off checking credentials that were never the problem.
+                if (e && (e.name === 'TypeError' || e.message === 'Failed to fetch')) {
+                    throw new Error('Could not reach the server. Check your connection and try again.');
+                }
+                throw e;
             });
         },
         logout: function () {

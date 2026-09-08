@@ -543,11 +543,19 @@ function openTender(id) {
         var label = btn ? btn.textContent : '';
         if (btn) { btn.textContent = 'Logging in…'; btn.disabled = true; }
 
-        RAIEC.login(u, p).then(function () {
+        // A free hosting tier suspends the service when idle, so the first login of the
+        // day can take most of a minute. Saying so turns an apparent hang into an
+        // ordinary wait; silence just looks broken.
+        RAIEC.login(u, p, function onSlow() {
+            if (btn) btn.textContent = 'Waking the server…';
+            err.style.color = 'var(--text-secondary)';
+            err.textContent = 'The server was idle and is starting up. This can take up to a minute the first time.';
+        }).then(function () {
             // Stay on the home page: signing in is not a request to go somewhere.
             closeLoginModal();
             window.location.reload();
         }).catch(function (e) {
+            err.style.color = '';
             err.textContent = (e && e.message) ? e.message : 'Login failed. Please try again.';
             if (btn) { btn.textContent = label || 'LOGIN'; btn.disabled = false; }
         });
