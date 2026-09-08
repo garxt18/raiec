@@ -3,6 +3,7 @@ package com.raiec.tender.web.dto;
 import com.raiec.tender.entity.Tender;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,6 +35,9 @@ public record TenderDetailResponse(
         String status,
         String officerRemark,
         String originalFileName,
+        /** When RAIEC received this submission, as opposed to the tender's own dates. */
+        Instant createdAt,
+        Instant updatedAt,
         List<ScheduleDetail> schedules
 ) {
     public static TenderDetailResponse from(Tender t) {
@@ -66,6 +70,8 @@ public record TenderDetailResponse(
                 t.getStatus() != null ? t.getStatus().name() : null,
                 t.getOfficerRemark(),
                 t.getOriginalFileName(),
+                t.getCreatedAt(),
+                t.getUpdatedAt(),
                 schedules);
     }
 }

@@ -4,6 +4,7 @@ import com.raiec.tender.entity.ScheduleEntry;
 import com.raiec.tender.entity.Tender;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,6 +25,10 @@ public record TenderSummaryResponse(
         int scheduleCount,
         int totalScheduleEntries,
         int totalBreakupItems,
+        /** When this submission entered RAIEC. Distinct from the tender's own dates,
+            which describe the procurement rather than our record of it. */
+        Instant createdAt,
+        Instant updatedAt,
         List<ScheduleSummary> schedules
 ) {
 
@@ -60,6 +65,8 @@ public record TenderSummaryResponse(
                 schedules.size(),
                 totalEntries,
                 totalBreakup,
+                t.getCreatedAt(),
+                t.getUpdatedAt(),
                 schedules);
     }
 }

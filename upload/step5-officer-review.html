@@ -131,35 +131,17 @@
                     <h3 class="wf-sidebar-title">Submission details</h3>
                     <table class="wf-detail-table">
                         <tr><td>Estimate ID</td><td id="orSubId">—</td></tr>
-                        <tr><td>Department</td><td id="orSubDept">—</td></tr>
+                        <tr><td>Tendering section</td><td id="orSubDept">—</td></tr>
                         <tr><td>Zone</td><td id="orSubZone">—</td></tr>
                         <tr><td>Contract type</td><td id="orSubContract">—</td></tr>
                         <tr><td>Submitted by</td><td id="orSubBy">—</td></tr>
+                        <tr><td>Uploaded</td><td id="orSubUploaded">—</td></tr>
                     </table>
                 </div>
                 <div class="wf-card">
                     <h3 class="wf-sidebar-title">Audit trail</h3>
-                    <ul class="wf-audit-list">
-                        <li class="wf-audit-item">
-                            <div class="wf-audit-dot"></div>
-                            <div class="wf-audit-content"><div class="wf-audit-title">PDF uploaded</div><div class="wf-audit-time">20 Jun 2026, 11:42 AM</div></div>
-                        </li>
-                        <li class="wf-audit-item">
-                            <div class="wf-audit-dot"></div>
-                            <div class="wf-audit-content"><div class="wf-audit-title">OCR extraction completed</div><div class="wf-audit-time">20 Jun 2026, 11:44 AM</div></div>
-                        </li>
-                        <li class="wf-audit-item">
-                            <div class="wf-audit-dot"></div>
-                            <div class="wf-audit-content"><div class="wf-audit-title">Rate matching completed</div><div class="wf-audit-time">20 Jun 2026, 11:45 AM</div></div>
-                        </li>
-                        <li class="wf-audit-item">
-                            <div class="wf-audit-dot" style="background:var(--accent-blue)"></div>
-                            <div class="wf-audit-content"><div class="wf-audit-title">AI analysis completed — 2 FAIL flags</div><div class="wf-audit-time">20 Jun 2026, 11:46 AM</div></div>
-                        </li>
-                        <li class="wf-audit-item">
-                            <div class="wf-audit-dot" style="background:var(--accent-blue)"></div>
-                            <div class="wf-audit-content"><div class="wf-audit-title">Sent to officer review</div><div class="wf-audit-time">20 Jun 2026, 11:47 AM</div></div>
-                        </li>
+                    <ul class="wf-audit-list" id="orAuditTrail">
+                        <li class="wf-audit-empty">Loading the trail…</li>
                     </ul>
                 </div>
             </div>

@@ -3,6 +3,8 @@ package com.raiec.ratematch.service;
 import com.raiec.lar.entity.LarRecord;
 import com.raiec.lar.repository.LarRecordRepository;
 import com.raiec.ratematch.web.dto.FinancialImpact;
+import com.raiec.ratematch.web.dto.ImpactSlice;
+import com.raiec.ratematch.web.dto.ThresholdClustering;
 import com.raiec.ratematch.web.dto.RateMatchItem;
 import com.raiec.ratematch.web.dto.RateMatchResponse;
 import com.raiec.reference.entity.DsrItem;
@@ -28,6 +30,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -164,7 +167,7 @@ public class RateMatchService {
             }
         }
 
-        FinancialImpact financials = summariseMoney(items);
+        FinancialImpact financials = summariseMoney(items, limits);
 
         // Largest excess first. An officer works down a list until time runs out, so the
         // costliest item must not sit wherever the PDF happened to put it. Items with no
@@ -211,7 +214,7 @@ public class RateMatchService {
      * tender that matches its references throughout, and a single net figure of zero
      * would say it was.
      */
-    private FinancialImpact summariseMoney(List<RateMatchItem> items) {
+    private FinancialImpact summariseMoney(List<RateMatchItem> items, RateThresholds limits) {
         BigDecimal quoted = BigDecimal.ZERO;
         BigDecimal comparable = BigDecimal.ZERO;
         BigDecimal reference = BigDecimal.ZERO;
@@ -234,6 +237,12 @@ public class RateMatchService {
         BigDecimal coverage = quoted.signum() == 0 ? BigDecimal.ZERO
                 : comparable.multiply(HUNDRED).divide(quoted, 1, RoundingMode.HALF_UP);
 
+        // Against the whole estimate, not against the checked part. Dividing by the
+        // comparable value would make an estimate look worse the less of it could be
+        // verified, which inverts the truth: low coverage means less is known, not more.
+        BigDecimal materiality = quoted.signum() == 0 ? BigDecimal.ZERO
+                : excess.multiply(HUNDRED).divide(quoted, 2, RoundingMode.HALF_UP);
+
         return new FinancialImpact(
                 quoted.setScale(2, RoundingMode.HALF_UP),
                 comparable.setScale(2, RoundingMode.HALF_UP),
@@ -242,8 +251,175 @@ public class RateMatchService {
                 saving.setScale(2, RoundingMode.HALF_UP),
                 excess.subtract(saving).setScale(2, RoundingMode.HALF_UP),
                 coverage,
-                quoted.subtract(comparable).setScale(2, RoundingMode.HALF_UP));
+                quoted.subtract(comparable).setScale(2, RoundingMode.HALF_UP),
+                materiality,
+                concentrationCount(items, excess),
+                CONCENTRATION_TARGET_PCT,
+                sliceBy(items, RateMatchItem::schedule, excess, "Unnamed schedule"),
+                sliceBySource(items, excess),
+                detectClustering(items, limits));
     }
+
+    /**
+     * The share of excess the concentration figure is measured against. Eighty percent is
+     * the conventional Pareto cut and needs no defending to an officer; what matters is
+     * that the same cut is used every time, so the item count is comparable between
+     * tenders.
+     */
+    private static final BigDecimal CONCENTRATION_TARGET_PCT = new BigDecimal("80.0");
+
+    /**
+     * How many of the costliest items it takes to reach {@link #CONCENTRATION_TARGET_PCT}
+     * of the excess.
+     *
+     * <p>This is what converts a flagged list into a plan. A hundred flagged items is a
+     * week of work; "four of them carry 80% of the money" is an afternoon, and the
+     * remaining ninety-six can be handled in bulk without pretending they were examined
+     * individually.
+     */
+    static int concentrationCount(List<RateMatchItem> items, BigDecimal excess) {
+        if (excess.signum() <= 0) return 0;
+        BigDecimal target = excess.multiply(CONCENTRATION_TARGET_PCT)
+                .divide(HUNDRED, 2, RoundingMode.HALF_UP);
+        BigDecimal running = BigDecimal.ZERO;
+        int count = 0;
+        List<BigDecimal> overs = items.stream()
+                .map(RateMatchItem::excessAmount)
+                .filter(e -> e != null && e.signum() > 0)
+                .sorted(Comparator.reverseOrder())
+                .toList();
+        for (BigDecimal e : overs) {
+            running = running.add(e);
+            count++;
+            if (running.compareTo(target) >= 0) break;
+        }
+        return count;
+    }
+
+    /** Groups excess by an arbitrary label taken from each item, largest slice first. */
+    private static List<ImpactSlice> sliceBy(List<RateMatchItem> items,
+                                             java.util.function.Function<RateMatchItem, String> key,
+                                             BigDecimal totalExcess,
+                                             String fallbackLabel) {
+        Map<String, BigDecimal[]> sums = new LinkedHashMap<>();   // [quoted, excess]
+        Map<String, Integer> counts = new LinkedHashMap<>();
+
+        for (RateMatchItem it : items) {
+            BigDecimal value = lineValue(it);
+            if (value == null) continue;
+            String label = key.apply(it);
+            if (label == null || label.isBlank()) label = fallbackLabel;
+
+            BigDecimal[] acc = sums.computeIfAbsent(label, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+            acc[0] = acc[0].add(value);
+            if (it.excessAmount() != null && it.excessAmount().signum() > 0) {
+                acc[1] = acc[1].add(it.excessAmount());
+            }
+            counts.merge(label, 1, Integer::sum);
+        }
+
+        return sums.entrySet().stream()
+                .map(e -> new ImpactSlice(
+                        e.getKey(),
+                        counts.getOrDefault(e.getKey(), 0),
+                        e.getValue()[0].setScale(2, RoundingMode.HALF_UP),
+                        e.getValue()[1].setScale(2, RoundingMode.HALF_UP),
+                        share(e.getValue()[1], totalExcess)))
+                .sorted(Comparator.comparing(ImpactSlice::excessTotal).reversed())
+                .toList();
+    }
+
+    /**
+     * Groups by which rate book answered for the item, with unreferenced value kept as its
+     * own slice.
+     *
+     * <p>Unreferenced items carry no excess by definition, so they would vanish from a
+     * breakdown that only totals excess — and vanishing is exactly wrong for the category
+     * that represents unexamined money. Their quoted value is reported instead, which is
+     * also the clearest statement of how much the Non-Scheduled gap is worth.
+     */
+    static List<ImpactSlice> sliceBySource(List<RateMatchItem> items, BigDecimal totalExcess) {
+        return sliceBy(items, it -> {
+            if (it.excessAmount() == null) return "No reference";
+            String src = it.referenceSource();
+            if (src == null || src.isBlank()) return "No reference";
+            // "DSR 2023", "IRUSSOR 2010 (stale)" and the like collapse to the book itself:
+            // the question here is which authority priced the work, not which edition.
+            String head = src.trim().split("[\\s(]")[0].toUpperCase();
+            return head.isEmpty() ? "No reference" : head;
+        }, totalExcess, "No reference");
+    }
+
+    private static BigDecimal share(BigDecimal part, BigDecimal whole) {
+        if (whole == null || whole.signum() == 0) return BigDecimal.ZERO;
+        return part.multiply(HUNDRED).divide(whole, 1, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Looks for variances bunched just under the fail threshold.
+     *
+     * <p>See {@link ThresholdClustering} for why this matters. The band is the quarter of
+     * the fail threshold immediately below it — with the default 10% line that is 7.5% to
+     * 10%, wide enough to catch deliberate positioning and narrow enough that ordinary
+     * variation does not fill it.
+     *
+     * <p>The sample floor of eight is the important guard. Two items out of three landing
+     * in the band is 67% and means nothing; the same share across forty items does not
+     * happen by accident. Without the floor this would cry wolf on every small estimate
+     * and be switched off within a week, which is the usual fate of a detector that is
+     * mostly wrong.
+     */
+    static ThresholdClustering detectClustering(List<RateMatchItem> items, RateThresholds limits) {
+        BigDecimal failPct = limits.getFailPct();
+        BigDecimal bandStart = failPct.multiply(new BigDecimal("0.75")).setScale(2, RoundingMode.HALF_UP);
+
+        int compared = 0, inBand = 0;
+        BigDecimal valueInBand = BigDecimal.ZERO;
+        BigDecimal excessInBand = BigDecimal.ZERO;
+
+        for (RateMatchItem it : items) {
+            if (it.excessAmount() == null || it.variancePct() == null) continue;
+            compared++;
+            BigDecimal v = it.variancePct();
+            if (v.compareTo(bandStart) >= 0 && v.compareTo(failPct) < 0) {
+                inBand++;
+                BigDecimal value = lineValue(it);
+                if (value != null) valueInBand = valueInBand.add(value);
+                if (it.excessAmount().signum() > 0) excessInBand = excessInBand.add(it.excessAmount());
+            }
+        }
+
+        BigDecimal sharePct = compared == 0 ? BigDecimal.ZERO
+                : new BigDecimal(inBand).multiply(HUNDRED)
+                        .divide(new BigDecimal(compared), 1, RoundingMode.HALF_UP);
+
+        boolean suspicious = compared >= MIN_ITEMS_FOR_CLUSTERING
+                && inBand >= 3
+                && sharePct.compareTo(CLUSTER_SHARE_PCT) >= 0;
+
+        String note;
+        if (compared < MIN_ITEMS_FOR_CLUSTERING) {
+            note = "Too few referenced items (" + compared + ") to say anything about clustering.";
+        } else if (suspicious) {
+            note = inBand + " of " + compared + " referenced items (" + sharePct
+                    + "%) are priced between " + bandStart + "% and the " + failPct
+                    + "% flag line. Rates derived from cost do not usually gather just under a"
+                    + " published tolerance. Worth asking how these were arrived at.";
+        } else {
+            note = "Variances are spread normally; no bunching under the " + failPct + "% flag line.";
+        }
+
+        return new ThresholdClustering(bandStart, failPct, inBand, compared, sharePct,
+                valueInBand.setScale(2, RoundingMode.HALF_UP),
+                excessInBand.setScale(2, RoundingMode.HALF_UP),
+                suspicious, note);
+    }
+
+    /** Below this many referenced items, any share is noise. See {@link #detectClustering}. */
+    private static final int MIN_ITEMS_FOR_CLUSTERING = 8;
+
+    /** Share of items inside the band that stops looking like chance. */
+    private static final BigDecimal CLUSTER_SHARE_PCT = new BigDecimal("25.0");
 
     /**
      * The value of one line. Prefers the amount printed in the tender, falling back to

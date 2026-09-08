@@ -137,8 +137,11 @@
                                 </tbody>
                             </table>
                         </div>
+                        <!-- The table is not paginated, so "View All" led nowhere. What is
+                             useful here is knowing whether a filter is hiding anything. -->
                         <div class="lar-records-foot">
-                            <a href="#" class="panel-link" id="larViewAll">View All <span id="larTotalCount">1,247</span> Records &rarr;</a>
+                            <span class="lar-records-count" id="larTotalCount">—</span>
+                            <button type="button" class="panel-link" id="larClearFilters" hidden>Clear filters</button>
                         </div>
                     </div>
 
@@ -165,28 +168,33 @@
                         </div>
                     </div>
 
-                    <!-- Auto-Update Flow -->
+                    <!-- How a rate gets here. This is an explanation of the process, not a
+                         live status readout, so it is labelled as one and the counts under
+                         it come from the dataset rather than from adjectives. -->
                     <div class="td-card td-reveal">
                         <div class="td-card-header">
-                            <h3 class="td-card-title">Auto-Update Flow</h3>
+                            <h3 class="td-card-title">How a rate gets here</h3>
                         </div>
                         <div class="lar-flow">
                             <div class="lar-flow-node">
                                 <span class="lar-flow-dot"></span>
-                                <span class="lar-flow-text">Tender Finalized</span>
+                                <span class="lar-flow-text">Tender vetted and approved</span>
                             </div>
                             <div class="lar-flow-line"></div>
                             <div class="lar-flow-node">
                                 <span class="lar-flow-dot"></span>
-                                <span class="lar-flow-text">Officer Verification</span>
+                                <span class="lar-flow-text">Non-Scheduled items extracted</span>
                             </div>
                             <div class="lar-flow-line"></div>
                             <div class="lar-flow-node">
                                 <span class="lar-flow-dot lar-flow-dot-final"></span>
-                                <span class="lar-flow-text">LAR Updated</span>
+                                <span class="lar-flow-text">Lowest rate kept as the LAR</span>
                             </div>
                         </div>
-                        <p class="lar-flow-note">Rate auto-syncing to database after concurrence. Triggers transactional update.</p>
+                        <p class="lar-flow-note" id="larFlowNote">Approving an estimate records the rate for every
+                            Non-Scheduled item in it. Where the item is already known, the lower of the two rates is
+                            kept, so the benchmark only ever moves down.</p>
+                        <p class="lar-flow-state" id="larFlowState">—</p>
                     </div>
                 </div>
             </div>

@@ -1,8 +1,10 @@
 package com.raiec.tender.web;
 
+import com.raiec.tender.service.TenderEventService;
 import com.raiec.tender.service.TenderService;
 import com.raiec.tender.web.dto.ApprovalResponse;
 import com.raiec.tender.web.dto.TenderDetailResponse;
+import com.raiec.tender.web.dto.TenderEventResponse;
 import com.raiec.tender.web.dto.TenderStatsResponse;
 import com.raiec.tender.web.dto.TenderSummaryResponse;
 import org.springframework.http.HttpStatus;
@@ -34,9 +36,23 @@ import java.util.List;
 public class TenderController {
 
     private final TenderService tenderService;
+    private final TenderEventService events;
 
-    public TenderController(TenderService tenderService) {
+    public TenderController(TenderService tenderService, TenderEventService events) {
         this.tenderService = tenderService;
+        this.events = events;
+    }
+
+    /** The audit trail for one tender, oldest first. */
+    @GetMapping("/{id}/events")
+    public List<TenderEventResponse> events(@PathVariable Long id) {
+        return events.forTender(id);
+    }
+
+    /** The most recent activity across every tender, for the dashboard feed. */
+    @GetMapping("/events/recent")
+    public List<TenderEventResponse> recentEvents() {
+        return events.recent();
     }
 
     /** Upload a tender PDF; it is parsed and stored. */

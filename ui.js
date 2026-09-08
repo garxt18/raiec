@@ -249,11 +249,64 @@
         init();
     }
 
+    /* =========================================================================
+       Dates
+       One formatter for the whole application. Timestamps are how a record is
+       identified in conversation -- "the one from Tuesday afternoon" -- so two
+       entries made on the same day have to be tellable apart, which a date alone
+       cannot do. Rendered in the viewer's own locale offset, because the officer
+       reading it is the person who needs to recognise the moment.
+       ====================================================================== */
+    var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    function parseWhen(value) {
+        if (!value) return null;
+        var d = value instanceof Date ? value : new Date(value);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    /** "08 Sep 2026" — for a value that genuinely has no time, such as an approval date. */
+    function formatDate(value) {
+        var d = parseWhen(value);
+        if (!d) return '—';
+        return String(d.getDate()).padStart(2, '0') + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+    }
+
+    /** "08 Sep 2026, 2:14 PM" — the default wherever a real timestamp exists. */
+    function formatDateTime(value) {
+        var d = parseWhen(value);
+        if (!d) return '—';
+        var h = d.getHours();
+        var suffix = h >= 12 ? 'PM' : 'AM';
+        var h12 = h % 12 === 0 ? 12 : h % 12;
+        return formatDate(d) + ', ' + h12 + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + suffix;
+    }
+
+    /**
+     * "4 minutes ago", falling back to the absolute date once that stops being useful.
+     * Recency is the question for anything under a day old; after that the calendar
+     * date is what people actually reason with.
+     */
+    function formatRelative(value) {
+        var d = parseWhen(value);
+        if (!d) return '—';
+        var secs = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (secs < 0) return formatDateTime(d);          // clock skew: do not claim the future
+        if (secs < 60) return 'just now';
+        if (secs < 3600) { var m = Math.floor(secs / 60); return m + (m === 1 ? ' minute ago' : ' minutes ago'); }
+        if (secs < 86400) { var h = Math.floor(secs / 3600); return h + (h === 1 ? ' hour ago' : ' hours ago'); }
+        return formatDateTime(d);
+    }
+
     window.RAIEC_UI = {
         applyTheme: applyTheme,
         toggleTheme: toggleTheme,
         currentTheme: currentTheme,
         showLoader: showLoader,
-        hideLoader: hideLoader
+        hideLoader: hideLoader,
+        formatDate: formatDate,
+        formatDateTime: formatDateTime,
+        formatRelative: formatRelative
     };
 })();

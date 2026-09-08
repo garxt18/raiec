@@ -82,33 +82,22 @@
 
     /* -------------------------------------------------------------------
      * DATA LAYER
-     * All values below are DEMO/PLACEHOLDER data only.
-     * Replace `LARData.records`, `.insights`, `.updates` with a backend
-     * API/database response in the future. The UI renders entirely from
-     * these structures, so no markup changes are needed when wiring a API.
+     *
+     * Starts empty and stays empty until the server answers. It used to ship six
+     * invented rates and a total of 1,247, which rendered before the fetch and
+     * remained if the fetch failed -- so an offline server looked exactly like a
+     * populated dataset. On a page whose purpose is to be the authority on what
+     * the railway has previously paid, that is the one failure mode that must not
+     * be silent: an officer citing a rate needs to know it came from a record,
+     * and an empty dataset is a fact worth telling them.
      * ----------------------------------------------------------------- */
     var LARData = {
-        records: [
-            { itemCode: 'USSOR-C-001',   description: 'Earthwork in excavation', value: 85.50,  unit: 'Cum', updatedOn: '2026-06-15' },
-            { itemCode: 'USSOR-C-014',   description: 'Cement Concrete M15',     value: 4250,   unit: 'Cum', updatedOn: '2026-06-10' },
-            { itemCode: 'LAR-JP-2024-07',description: 'Reinforcement Steel',      value: 72800,  unit: 'MT',  updatedOn: '2026-06-08' },
-            { itemCode: 'DSR-E-008',     description: 'GI Pipe 25mm',            value: 186,    unit: 'm',   updatedOn: '2026-06-05' },
-            { itemCode: 'LAR-JU-2024-11',description: 'Bitumen VG-30',           value: 58400,  unit: 'MT',  updatedOn: '2026-06-02' },
-            { itemCode: 'USSOR-C-089',   description: 'Brick Masonry CM 1:6',    value: 3820,   unit: 'Cum', updatedOn: '2026-05-28' }
-        ],
-        totalRecords: 1247,
-        insights: [
-            { label: 'Highest Increase', value: '+8.3%',     sub: 'Steel Fe-500',       accent: 'green' },
-            { label: 'Most Used Item',   value: 'CC M-20',   sub: 'Used in 47 tenders', accent: 'blue' },
-            { label: 'AI Confidence',    value: '94.2%',     sub: 'High accuracy',      accent: 'purple' },
-            { label: 'Last Auto Sync',   value: '15 Jun',    sub: '14:32 IST',          accent: 'cyan' }
-        ],
-        updates: [
-            { dot: 'green',  title: 'Steel Reinforcement Added', sub: '₹72,800 / MT',  date: '10 Jun 2025' },
-            { dot: 'blue',   title: 'Cement Rate Updated',       sub: '₹4,250 / bag',  date: '15 Jun 2025' },
-            { dot: 'yellow', title: 'Bitumen Rate Revised',      sub: '₹58,400 / MT',  date: '05 Jun 2025' },
-            { dot: 'purple', title: 'Concrete Mix M25',          sub: '₹180 / cum',    date: '02 Jun 2025' }
-        ]
+        records: [],
+        totalRecords: 0,
+        loaded: false,
+        error: null,
+        insights: [],
+        updates: []
     };
 
     // Expose for future backend integration / debugging
@@ -165,20 +154,47 @@
     }
 
     function renderTable() {
+        updateTotalCount();
         var rows = getVisibleRecords();
         if (rows.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="lar-empty">No matching LAR records found.</td></tr>';
+            // Three different situations that a single "no records" line would blur into
+            // one. Only the middle case means the officer should change their search.
+            var msg;
+            if (LARData.error) {
+                msg = 'Could not reach the server, so the LAR dataset cannot be shown.';
+            } else if (!LARData.loaded) {
+                msg = 'Loading accepted rates…';
+            } else if (LARData.records.length === 0) {
+                msg = 'No accepted rates recorded yet. Rates are added automatically when a tender is approved.';
+            } else {
+                msg = 'No records match this search.';
+            }
+            tableBody.innerHTML = '<tr><td colspan="5" class="lar-empty">' + larEscLocal(msg) + '</td></tr>';
             return;
         }
         tableBody.innerHTML = rows.map(function(r) {
             return '<tr>' +
-                '<td class="td-tender-no">' + r.itemCode + '</td>' +
-                '<td class="td-tender-title">' + r.description + '</td>' +
+                '<td class="td-tender-no">' + larEscLocal(r.itemCode) + '</td>' +
+                '<td class="td-tender-title">' + larEscLocal(r.description) + '</td>' +
                 '<td class="lar-value">₹' + formatINR(r.value) + '</td>' +
-                '<td>' + r.unit + '</td>' +
-                '<td>' + formatDate(r.updatedOn) + '</td>' +
+                '<td>' + larEscLocal(r.unit) + '</td>' +
+                '<td class="lar-when">' + larEscLocal(formatWhen(r)) + '</td>' +
             '</tr>';
         }).join('');
+    }
+
+    /**
+     * Approval date, with the moment the row was written underneath it.
+     *
+     * approvedOn carries only a day, which cannot separate two rates accepted the same
+     * afternoon -- and that is exactly the pair someone reviewing the day's additions
+     * needs to tell apart. The recorded timestamp does separate them.
+     */
+    function formatWhen(r) {
+        var day = r.updatedOn ? formatDate(r.updatedOn) : null;
+        var stamp = r.recordedAt && window.RAIEC_UI ? RAIEC_UI.formatDateTime(r.recordedAt) : null;
+        if (day && stamp) return day + ' (added ' + stamp + ')';
+        return stamp || day || '—';
     }
 
     function renderInsights() {
@@ -213,7 +229,20 @@
 
     function updateTotalCount() {
         var el = document.getElementById('larTotalCount');
-        if (el) el.textContent = formatINR(LARData.totalRecords);
+        if (!el) return;
+
+        var total = LARData.records.length;
+        var shown = getVisibleRecords().length;
+        var filtered = shown !== total;
+
+        if (LARData.error) el.textContent = 'Dataset unavailable';
+        else if (!LARData.loaded) el.textContent = 'Loading…';
+        else if (total === 0) el.textContent = 'No records yet';
+        else if (filtered) el.textContent = 'Showing ' + formatINR(shown) + ' of ' + formatINR(total) + ' records';
+        else el.textContent = formatINR(total) + (total === 1 ? ' record' : ' records');
+
+        var clear = document.getElementById('larClearFilters');
+        if (clear) clear.hidden = !filtered;
     }
 
     /* ---------------- CRUD API (reusable, future-ready) ---------------- */
@@ -251,6 +280,15 @@
 
     if (searchInput) searchInput.addEventListener('input', function() { state.search = this.value; renderTable(); });
     if (catFilter) catFilter.addEventListener('change', function() { state.category = this.value; renderTable(); });
+
+    var clearBtn = document.getElementById('larClearFilters');
+    if (clearBtn) clearBtn.addEventListener('click', function () {
+        state.search = '';
+        state.category = '';
+        if (searchInput) searchInput.value = '';
+        if (catFilter) catFilter.value = '';
+        renderTable();
+    });
 
     // Sortable headers
     document.querySelectorAll('.lar-table thead th[data-sort]').forEach(function(th) {
@@ -885,7 +923,16 @@ function viewTender(id) {
     raiecFetch(API + '/tenders/stats')
         .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function(s) { applyStats(s); })
-        .catch(function() { /* server offline: keep static demo numbers */ });
+        .catch(function () {
+            // The tiles start at an em dash, so leaving them is already honest. The
+            // notification feed must say why it is empty rather than implying quiet.
+            var box = document.getElementById('recentNotifList');
+            if (box) {
+                box.innerHTML = '<div class="td-notif-item"><div class="td-notif-content">' +
+                    '<div class="td-notif-sub">Could not reach the server, so recent activity is not shown.</div>' +
+                    '</div></div>';
+            }
+        });
 
     function setStat(id, val) {
         var el = document.getElementById(id);
@@ -923,7 +970,81 @@ function viewTender(id) {
         setStat('statUnderReview', s.underReview);
         setStat('statInfoReq', s.infoRequested);
         setStat('statClosed', s.closed);
+        renderExposure(s.impact);
         renderNotifications(s.recent || []);
+    }
+
+    /* ---------------------------------------------------------------------
+       Money under review
+
+       The tiles above answer "how many tenders". This answers "how much", which
+       is the question that decides which of them gets opened first. It is
+       hidden entirely when nothing has been evaluated, because a headline of
+       ₹0 would read as "the queue is clean" when it actually means "nobody has
+       looked".
+       ------------------------------------------------------------------ */
+    function renderExposure(impact) {
+        var host = document.getElementById('tdExposure');
+        if (!host) return;
+        if (!impact || (impact.evaluated === 0 && impact.notEvaluated === 0)) {
+            host.hidden = true;
+            return;
+        }
+        host.hidden = false;
+
+        var excess = Number(impact.excessUnderReview) || 0;
+        var unknown = impact.notEvaluated || 0;
+
+        host.innerHTML =
+            '<div class="td-card-header">' +
+              '<h2 class="td-card-title">Money under review</h2>' +
+              '<span class="td-card-meta">Across tenders still awaiting a decision</span>' +
+            '</div>' +
+            '<div class="td-exposure-body">' +
+              '<div class="td-exposure-lead" data-tone="' + (excess > 0 ? 'over' : 'clear') + '">' +
+                '<span class="td-exposure-label">Quoted above reference</span>' +
+                '<span class="td-exposure-value">' + esc(shortINR(excess)) + '</span>' +
+                // Below a lakh the abbreviated and exact forms are the same string, and
+                // printing it twice reads as a rendering fault rather than as detail.
+                (shortINR(excess) !== fullINR(excess)
+                  ? '<span class="td-exposure-sub">' + esc(fullINR(excess)) + '</span>' : '') +
+              '</div>' +
+              '<dl class="td-exposure-grid">' +
+                expStat('Tenders carrying excess', String(impact.withExcess || 0),
+                        'of ' + (impact.evaluated || 0) + ' evaluated') +
+                expStat('Largest single exposure',
+                        impact.largestExcess != null ? shortINR(impact.largestExcess) : '—',
+                        impact.largestTenderNo || 'nothing flagged yet') +
+                // Named rather than omitted: a tender nobody has run is missing from the
+                // total above, not absent from the risk, and only this line says so.
+                expStat('Not yet evaluated', String(unknown),
+                        unknown ? 'exposure unknown for these' : 'every pending tender has been checked') +
+              '</dl>' +
+            '</div>';
+    }
+
+    function expStat(label, value, sub) {
+        return '<div class="td-exposure-stat">' +
+                 '<dt>' + esc(label) + '</dt>' +
+                 '<dd>' + esc(value) + '</dd>' +
+                 '<small>' + esc(sub) + '</small>' +
+               '</div>';
+    }
+
+    function fullINR(n) {
+        if (n == null || isNaN(Number(n))) return '—';
+        return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+    }
+
+    /* Crore and lakh, because that is how these figures are spoken about in a railway
+       office and a number nobody can read at a glance informs nobody. */
+    function shortINR(n) {
+        if (n == null || isNaN(Number(n))) return '—';
+        var v = Math.abs(Number(n));
+        var sign = Number(n) < 0 ? '-' : '';
+        if (v >= 1e7) return sign + '₹' + (v / 1e7).toFixed(2).replace(/\.00$/, '') + ' Cr';
+        if (v >= 1e5) return sign + '₹' + (v / 1e5).toFixed(2).replace(/\.00$/, '') + ' L';
+        return sign + '₹' + v.toLocaleString('en-IN', { maximumFractionDigits: 0 });
     }
 
     function renderNotifications(list) {
@@ -941,7 +1062,8 @@ function viewTender(id) {
                     '<div class="td-notif-title">' + esc(a.tenderNo) + ' — ' + st.label + '</div>' +
                     '<div class="td-notif-sub">' + esc(truncate(a.nameOfWork, 60)) + '</div>' +
                 '</div>' +
-                '<div class="td-notif-time">' + relTime(a.at) + '</div>' +
+                '<div class="td-notif-time" title="' + esc(exactTime(a.at)) + '">' +
+                    esc(relTime(a.at)) + '</div>' +
             '</div>';
         }).join('');
     }
@@ -967,16 +1089,13 @@ function viewTender(id) {
     function truncate(s, n) { s = s || ''; return s.length > n ? s.slice(0, n - 1) + '…' : s; }
     function relTime(iso) {
         if (!iso) return '';
-        var d = new Date(iso);
-        if (isNaN(d)) return '';
-        var sec = (Date.now() - d.getTime()) / 1000;
-        if (sec < 60) return 'Just now';
-        var m = Math.floor(sec / 60);
-        if (m < 60) return m + ' Min Ago';
-        var h = Math.floor(m / 60);
-        if (h < 24) return h + ' Hour' + (h > 1 ? 's' : '') + ' Ago';
-        var dd = Math.floor(h / 24);
-        return dd + ' Day' + (dd > 1 ? 's' : '') + ' Ago';
+        return window.RAIEC_UI ? RAIEC_UI.formatRelative(iso) : String(iso);
+    }
+
+    /** The exact moment, for the title attribute. Relative time scans; absolute time cites. */
+    function exactTime(iso) {
+        if (!iso) return '';
+        return window.RAIEC_UI ? RAIEC_UI.formatDateTime(iso) : String(iso);
     }
     function esc(s) {
         if (s == null) return '';
@@ -1000,9 +1119,12 @@ function viewTender(id) {
                     description: r.description,
                     value: r.rate != null ? Number(r.rate) : 0,
                     unit: r.unit || '',
-                    updatedOn: r.approvedOn || ''
+                    updatedOn: r.approvedOn || '',
+                    recordedAt: r.recordedAt || null,
+                    sourceTenderNo: r.sourceTenderNo || null
                 };
             });
+            if (window.LARData) { window.LARData.loaded = true; window.LARData.error = null; }
             if (window.LAR && typeof window.LAR.setData === 'function') {
                 window.LAR.setData(mapped, mapped.length);
             }
@@ -1017,15 +1139,36 @@ function viewTender(id) {
                 }
                 if (r.sourceTenderNo) sources[r.sourceTenderNo] = true;
             });
+            // "Auto updated" was previously the total, which made the two tiles always
+            // agree and told the officer nothing. A rate carrying a source tender came
+            // from an approval; one without it was entered by hand, and the split between
+            // the two is the actual measure of how much of this dataset builds itself.
+            var autoAdded = list.filter(function (r) { return !!r.sourceTenderNo; }).length;
+
             setLarKpi('larKpiTotal', list.length);
             setLarKpi('larKpiNew', newThisMonth);
-            setLarKpi('larKpiAuto', list.length);
+            setLarKpi('larKpiAuto', autoAdded);
             setLarKpi('larKpiSources', Object.keys(sources).length);
 
             renderLarUpdates(list);
             renderRealInsights(list);
+            renderFlowState(list, autoAdded);
         })
-        .catch(function() { /* server offline: keep demo records */ });
+        .catch(function () {
+            // Say so. Rendering nothing here would be indistinguishable from an empty
+            // dataset, and the two call for opposite responses from the officer.
+            if (window.LARData) { window.LARData.loaded = true; window.LARData.error = true; }
+            if (window.LAR && typeof window.LAR.setData === 'function') window.LAR.setData([], 0);
+
+            ['larKpiTotal', 'larKpiNew', 'larKpiAuto', 'larKpiSources'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el.textContent = '—';
+            });
+            var updates = document.getElementById('larUpdatesList');
+            if (updates) updates.innerHTML = '<p class="lar-upd-empty">Could not reach the server.</p>';
+            var grid = document.getElementById('larInsightsGrid');
+            if (grid) grid.innerHTML = '<p class="lar-upd-empty">Insights need the LAR dataset, which could not be loaded.</p>';
+        });
 
     function setLarKpi(id, val) {
         var el = document.getElementById(id);
@@ -1050,6 +1193,27 @@ function viewTender(id) {
             else el.textContent = target.toLocaleString('en-IN');
         }
         requestAnimationFrame(step);
+    }
+
+    /**
+     * Turns the process diagram above it into a statement about this dataset.
+     *
+     * The panel previously ended with "Rate auto-syncing to database after concurrence",
+     * which describes nothing an officer can check. How many rates actually arrived this
+     * way, and how many were typed in, is checkable and is the thing worth knowing.
+     */
+    function renderFlowState(list, autoAdded) {
+        var el = document.getElementById('larFlowState');
+        if (!el) return;
+
+        if (!list.length) {
+            el.textContent = 'No rates recorded yet, so nothing has come through this route.';
+            return;
+        }
+        var manual = list.length - autoAdded;
+        el.textContent = autoAdded + ' of ' + list.length + (list.length === 1 ? ' rate' : ' rates')
+            + ' arrived this way'
+            + (manual > 0 ? '; ' + manual + (manual === 1 ? ' was' : ' were') + ' entered by hand.' : '.');
     }
 
     function renderLarUpdates(list) {
@@ -1080,7 +1244,8 @@ function viewTender(id) {
                      '<div class="lar-upd-side">' +
                        '<span class="lar-upd-rate">\u20b9' + rate + '</span>' +
                        '<span class="lar-upd-unit">' + (r.unit ? 'per ' + larEsc(r.unit) : '') + '</span>' +
-                       '<span class="lar-upd-date">' + larDate(r.approvedOn) + '</span>' +
+                       '<span class="lar-upd-date" title="' + larEsc(larWhen(r)) + '">' +
+                         larEsc(larWhen(r)) + '</span>' +
                      '</div>' +
                    '</article>';
         }).join('');
@@ -1094,15 +1259,24 @@ function viewTender(id) {
         var lowest = withRate.slice().sort(function (a, b) { return Number(a.rate) - Number(b.rate); })[0];
         var sources = {};
         var latest = null;
+        var latestStamp = null;
         list.forEach(function (r) {
             if (r.sourceTenderNo) sources[r.sourceTenderNo] = true;
             if (r.approvedOn && (!latest || String(r.approvedOn) > String(latest))) latest = r.approvedOn;
+            if (r.recordedAt && (!latestStamp || String(r.recordedAt) > String(latestStamp))) latestStamp = r.recordedAt;
         });
         var insights = [
             { label: 'Highest Rate', value: highest ? '\u20B9' + Number(highest.rate).toLocaleString('en-IN') : '\u2014', sub: highest ? larTrunc(highest.description, 26) : 'No data yet', accent: 'green' },
             { label: 'Lowest Rate', value: lowest ? '\u20B9' + Number(lowest.rate).toLocaleString('en-IN') : '\u2014', sub: lowest ? larTrunc(lowest.description, 26) : 'No data yet', accent: 'blue' },
             { label: 'Source Tenders', value: String(Object.keys(sources).length), sub: 'Approved tenders', accent: 'purple' },
-            { label: 'Last Updated', value: latest ? larDate(latest) : '\u2014', sub: 'Most recent entry', accent: 'cyan' }
+            // Leads with how long ago, because the question about a rate dataset is almost
+            // always "is this current"; the exact stamp sits underneath for citing.
+            { label: 'Last Updated',
+              value: latestStamp && window.RAIEC_UI ? RAIEC_UI.formatRelative(latestStamp)
+                                                    : (latest ? larDate(latest) : '\u2014'),
+              sub: latestStamp && window.RAIEC_UI ? RAIEC_UI.formatDateTime(latestStamp)
+                                                  : 'Most recent entry',
+              accent: 'cyan' }
         ];
         grid.innerHTML = insights.map(function (i) {
             return '<div class="lar-insight" data-accent="' + i.accent + '">' +
@@ -1120,6 +1294,14 @@ function viewTender(id) {
         if (isNaN(d)) return '';
         return d.getDate().toString().padStart(2, '0') + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear();
     }
+    /** Approval day plus the exact moment it was written, when both are known. */
+    function larWhen(r) {
+        var day = larDate(r.approvedOn);
+        var stamp = r.recordedAt && window.RAIEC_UI ? RAIEC_UI.formatDateTime(r.recordedAt) : '';
+        if (day && stamp) return stamp;
+        return stamp || day || '—';
+    }
+
     function larTrunc(s, n) { s = s || ''; return s.length > n ? s.slice(0, n - 1) + '…' : s; }
     function larEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 })();

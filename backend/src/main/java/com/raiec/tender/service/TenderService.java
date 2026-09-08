@@ -11,6 +11,8 @@ import com.raiec.tender.entity.TenderStatus;
 import com.raiec.tender.ingest.TenderPdfParser;
 import com.raiec.tender.repository.TenderRepository;
 import com.raiec.tender.web.dto.ApprovalResponse;
+import com.raiec.tender.web.dto.PortfolioImpact;
+import com.raiec.tender.web.dto.TenderEventResponse;
 import com.raiec.tender.web.dto.RecentActivity;
 import com.raiec.tender.web.dto.TenderDetailResponse;
 import com.raiec.tender.web.dto.TenderStatsResponse;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -36,15 +39,18 @@ public class TenderService {
     private final TenderRepository tenderRepository;
     private final LarRecordRepository larRecordRepository;
     private final NsItemExtractor nsItemExtractor;
+    private final TenderEventService events;
 
     public TenderService(TenderPdfParser parser,
                          TenderRepository tenderRepository,
                          LarRecordRepository larRecordRepository,
-                         NsItemExtractor nsItemExtractor) {
+                         NsItemExtractor nsItemExtractor,
+                         TenderEventService events) {
         this.parser = parser;
         this.tenderRepository = tenderRepository;
         this.larRecordRepository = larRecordRepository;
         this.nsItemExtractor = nsItemExtractor;
+        this.events = events;
     }
 
     /** Parses a tender PDF, rejects duplicates, persists the full tree, and returns a summary. */
@@ -72,6 +78,16 @@ public class TenderService {
 
         parsed.setOriginalFileName(originalFileName);
         Tender saved = tenderRepository.save(parsed);
+
+        // Two events, because they answer different questions: who put this document into
+        // the system, and what the parser managed to get out of it.
+        events.record(saved.getId(), TenderEventService.UPLOADED,
+                "PDF uploaded" + (originalFileName != null ? " — " + originalFileName : ""));
+        int entries = saved.getSchedules().stream().mapToInt(sc -> sc.getEntries().size()).sum();
+        events.record(saved.getId(), TenderEventService.EXTRACTED,
+                "Extraction completed — " + saved.getSchedules().size() + " schedule(s), "
+                        + entries + " line item(s)");
+
         return TenderSummaryResponse.from(saved);
     }
 
@@ -118,7 +134,47 @@ public class TenderService {
                         t.getCreatedAt()))
                 .toList();
 
-        return new TenderStatsResponse(total, active, underReview, infoRequested, finalized, closed, recent);
+        return new TenderStatsResponse(total, active, underReview, infoRequested, finalized, closed,
+                portfolioImpact(all), recent);
+    }
+
+    /**
+     * Sums the last recorded excess for every tender still awaiting a decision.
+     *
+     * <p>See {@link PortfolioImpact} for why this reads the audit trail instead of
+     * re-evaluating: the dashboard must stay cheap, and the figures an officer was shown
+     * are the ones worth aggregating.
+     */
+    private PortfolioImpact portfolioImpact(List<Tender> all) {
+        Map<Long, BigDecimal> latestExcess = new HashMap<>();
+        for (TenderEventResponse e : events.recentRateMatches()) {
+            // The query returns newest first, so the first entry seen for a tender is its
+            // most recent evaluation and later ones must not overwrite it.
+            if (e.excessAtEvent() != null) latestExcess.putIfAbsent(e.tenderId(), e.excessAtEvent());
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+        int evaluated = 0, notEvaluated = 0, withExcess = 0;
+        String largestNo = null;
+        BigDecimal largest = null;
+
+        for (Tender t : all) {
+            if (t.getStatus() == TenderStatus.APPROVED || t.getStatus() == TenderStatus.REJECTED) continue;
+            BigDecimal excess = latestExcess.get(t.getId());
+            if (excess == null) { notEvaluated++; continue; }
+
+            evaluated++;
+            total = total.add(excess);
+            if (excess.signum() > 0) withExcess++;
+            if (largest == null || excess.compareTo(largest) > 0) {
+                largest = excess;
+                largestNo = t.getTenderNo();
+            }
+        }
+
+        return new PortfolioImpact(total.setScale(2, RoundingMode.HALF_UP), evaluated, notEvaluated,
+                withExcess, largestNo,
+                largest == null ? null : largest.setScale(2, RoundingMode.HALF_UP));
     }
 
     @Transactional
@@ -127,6 +183,7 @@ public class TenderService {
             throw new TenderNotFoundException(id);
         }
         tenderRepository.deleteById(id);
+        events.deleteForTender(id);
     }
 
     /**
@@ -190,6 +247,8 @@ public class TenderService {
 
         tender.setStatus(TenderStatus.APPROVED);
         tenderRepository.save(tender);
+        events.record(id, TenderEventService.APPROVED,
+                "Estimate approved — " + added + " new LAR rate(s), " + updated + " updated");
         return new ApprovalResponse(tender.getTenderNo(), tender.getStatus().name(), added, updated);
     }
 
@@ -200,6 +259,7 @@ public class TenderService {
         if (tender.getStatus() != TenderStatus.APPROVED && tender.getStatus() != TenderStatus.REJECTED) {
             tender.setStatus(TenderStatus.OFFICER_REVIEW);
             tenderRepository.save(tender);
+            events.record(id, TenderEventService.SENT_TO_REVIEW, "Sent to officer review");
         }
         return new ApprovalResponse(tender.getTenderNo(), tender.getStatus().name(), 0, 0);
     }
@@ -221,6 +281,8 @@ public class TenderService {
             tender.setOfficerRemark(remark.trim());
         }
         tenderRepository.save(tender);
+        events.record(id, TenderEventService.INFO_REQUESTED,
+                "Clarification requested" + (remark != null && !remark.isBlank() ? " — " + remark.trim() : ""));
         return new ApprovalResponse(tender.getTenderNo(), tender.getStatus().name(), 0, 0);
     }
 
@@ -230,6 +292,7 @@ public class TenderService {
                 .orElseThrow(() -> new TenderNotFoundException(id));
         tender.setStatus(TenderStatus.REJECTED);
         tenderRepository.save(tender);
+        events.record(id, TenderEventService.REJECTED, "Estimate rejected and sent back");
         return new ApprovalResponse(tender.getTenderNo(), tender.getStatus().name(), 0, 0);
     }
 

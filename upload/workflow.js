@@ -175,9 +175,89 @@ function isReturningToCompletedStep() {
 
 var WF_RETURNING = isReturningToCompletedStep();
 
+
+/* -----------------------------------------------------------------------------
+   Completed-step cache
+
+   The backward flag alone was not enough. It is consumed by the step you return
+   to, so walking 4 -> 3 -> 4 arrived at step 4 with the flag already spent, and
+   the page announced and re-ran work it had finished a moment earlier. Direction
+   was the wrong thing to track: what matters is whether this step has already
+   produced a result for this tender, which is true however you arrived.
+
+   So each step stores its result, keyed by tender. A step with a stored result
+   renders from it instantly and silently. Anything that invalidates the result
+   -- a new upload, clearing the workspace -- drops the cache with it, and the
+   work runs again as it should.
+   -------------------------------------------------------------------------- */
+function stepCacheKey(step) {
+    var id = getState('tenderId');
+    return id == null ? null : 'raiec_step_' + step + '_' + id;
+}
+
+function readStepCache(step) {
+    var key = stepCacheKey(step);
+    if (!key) return null;
+    try {
+        var raw = sessionStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+}
+
+function writeStepCache(step, payload) {
+    var key = stepCacheKey(step);
+    if (!key) return;
+    try {
+        sessionStorage.setItem(key, JSON.stringify(payload));
+    } catch (e) {
+        // A full quota is not worth failing over: the step simply refetches next time.
+    }
+}
+
+/** Called when a new tender arrives, so no stale step result can outlive it. */
+function clearStepCaches() {
+    try {
+        Object.keys(sessionStorage)
+            .filter(function (k) { return k.indexOf('raiec_step_') === 0; })
+            .forEach(function (k) { sessionStorage.removeItem(k); });
+    } catch (e) { /* ignore */ }
+}
+
 function showArrivalLoader(title, steps) {
     if (WF_RETURNING) return;                 // already done; do not re-announce it
     if (window.RAIEC_UI) RAIEC_UI.showLoader(title, steps, { immediate: true });
+}
+
+/**
+ * Runs a step once per tender and replays the stored result thereafter.
+ *
+ * @param step     stepper number, used as the cache key
+ * @param url      endpoint to call on a miss
+ * @param loader   {title, steps} for the overlay, shown only on a real run
+ * @param render   draws the result; called with the same shape either way
+ * @param onError  draws the failure state
+ */
+function runStepOnce(step, url, loader, render, onError) {
+    var cached = readStepCache(step);
+    if (cached) {
+        // No overlay and no request. The result is already known, and showing a
+        // progress animation over work that is not happening is a small lie.
+        render(cached);
+        return;
+    }
+
+    showArrivalLoader(loader.title, loader.steps);
+    raiecFetch(url)
+        .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+        .then(function (d) {
+            writeStepCache(step, d);
+            render(d);
+            if (window.RAIEC_UI) RAIEC_UI.hideLoader();
+        })
+        .catch(function (err) {
+            if (window.RAIEC_UI) RAIEC_UI.hideLoader();
+            onError(err);
+        });
 }
 
 // Navigate between steps.
@@ -269,6 +349,64 @@ function handleFiles(files) {
 
 document.addEventListener('DOMContentLoaded', initDropzone);
 
+
+/* -----------------------------------------------------------------------------
+   Recent uploads (step 1 sidebar)
+
+   Previously three invented reference numbers. On a page whose whole purpose is
+   to add a real submission, invented neighbours are worse than an empty panel:
+   they teach the officer that what the sidebar says cannot be trusted, and that
+   doubt does not stay confined to the sidebar.
+   -------------------------------------------------------------------------- */
+document.addEventListener('DOMContentLoaded', function () {
+    var host = document.getElementById('recentUploads');
+    if (!host) return;
+
+    raiecFetch(RAIEC_API + '/tenders')
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (list) {
+            var recent = (list || []).slice().sort(function (a, b) {
+                return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+            }).slice(0, 4);
+
+            if (!recent.length) {
+                host.innerHTML = '<p class="wf-recent-empty">Nothing uploaded yet. This is the first submission.</p>';
+                return;
+            }
+
+            host.innerHTML = recent.map(function (t) {
+                var when = window.RAIEC_UI ? RAIEC_UI.formatRelative(t.createdAt) : '';
+                return '<a class="wf-recent-item" href="../tender-dashboard.html">' +
+                         '<div>' +
+                           '<div class="wf-recent-id">' + escapeHtml(t.tenderNo || '—') + '</div>' +
+                           '<div class="wf-recent-dept">' +
+                             escapeHtml(truncateRm(t.nameOfWork || 'Untitled work', 34)) +
+                           '</div>' +
+                           '<div class="wf-recent-when">' + escapeHtml(when) + '</div>' +
+                         '</div>' +
+                         statusBadge(t.status) +
+                       '</a>';
+            }).join('');
+        })
+        .catch(function () {
+            // Say the panel could not load. Silence here reads as "nothing uploaded yet",
+            // which is a different and misleading claim.
+            host.innerHTML = '<p class="wf-recent-empty">Could not reach the server, so recent uploads are not shown.</p>';
+        });
+});
+
+function statusBadge(status) {
+    var map = {
+        APPROVED:       ['wf-badge-green',  'Approved'],
+        REJECTED:       ['wf-badge-red',    'Rejected'],
+        OFFICER_REVIEW: ['wf-badge-yellow', 'In review'],
+        INFO_REQUESTED: ['wf-badge-yellow', 'Info sought'],
+        OCR_EXTRACTED:  ['',                'Extracted']
+    };
+    var hit = map[status] || ['', status ? String(status).toLowerCase() : 'Pending'];
+    return '<span class="wf-badge ' + hit[0] + '">' + escapeHtml(hit[1]) + '</span>';
+}
+
 // ===== Step 1: upload the estimate to the backend =====
 function uploadEstimate() {
     var btn = document.getElementById('submitBtn');
@@ -325,6 +463,9 @@ function uploadEstimate() {
                 showUploadMessage(msg, 'error');
                 return;
             }
+            // A new tender invalidates every stored step result; without this the next
+            // page would replay the previous submission's numbers under a new reference.
+            clearStepCaches();
             saveState('tenderId', r.body.id);
             saveState('tenderSummary', r.body);
             // Show what was actually read before leaving the page, so the parse result
@@ -365,16 +506,17 @@ function initOcrExtract() {
     }
     tbody.innerHTML = '<tr><td colspan="3">Loading extracted items...</td></tr>';
 
-    showArrivalLoader('Extracting the estimate', [
-            'Reading schedules…',
-            'Collecting line items and rate breakups…',
-            'Separating Non-Scheduled items…'
-    ]);
-    raiecFetch(RAIEC_API + '/tenders/' + id)
-        .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-        .then(function(t) { renderOcr(t); if (window.RAIEC_UI) RAIEC_UI.hideLoader(); })
-        .catch(function() {
-            if (window.RAIEC_UI) RAIEC_UI.hideLoader();
+    runStepOnce(2, RAIEC_API + '/tenders/' + id,
+        {
+            title: 'Extracting the estimate',
+            steps: [
+                'Reading schedules…',
+                'Collecting line items and rate breakups…',
+                'Separating Non-Scheduled items…'
+            ]
+        },
+        renderOcr,
+        function () {
             tbody.innerHTML = '<tr><td colspan="3">Could not load the tender from the server (is it running on :8080?).</td></tr>';
         });
 }
@@ -471,6 +613,10 @@ function decideTender(action, label, remark) {
                     + (r.body.larUpdated || 0) + ' updated in the LAR dataset.';
             }
             showReviewMessage(msg, 'success');
+            // The decision has just been written to the trail, and the trail is sitting
+            // on screen. Leaving it showing the state before the decision would make the
+            // panel look like it does not keep up with what the officer just did.
+            initAuditTrail();
             // The page used to just sit there after a decision, giving no sense that
             // anything had concluded. Confirm the outcome and offer the obvious next move.
             showOutcome(action, msg, r.body);
@@ -500,22 +646,24 @@ function initRateMatch() {
     var tbody = document.getElementById('rmTableBody');
     var id = getState('tenderId');
     if (!id) {
-        tbody.innerHTML = '<tr><td colspan="9">No tender loaded. Please upload an estimate first.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10">No tender loaded. Please upload an estimate first.</td></tr>';
         return;
     }
-    tbody.innerHTML = '<tr><td colspan="9">Running rate match…</td></tr>';
-    showArrivalLoader('Matching rates', [
-            'Reading the extracted line items…',
-            'Looking up IRUSSOR and CPWD DSR…',
-            'Checking Non-Scheduled items against the LAR dataset…',
-            'Calculating variance against tolerance…'
-    ]);
-    raiecFetch(RAIEC_API + '/tenders/' + id + '/rate-match')
-        .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-        .then(function(d) { renderRateMatch(d); if (window.RAIEC_UI) RAIEC_UI.hideLoader(); })
-        .catch(function() {
-            if (window.RAIEC_UI) RAIEC_UI.hideLoader();
-            tbody.innerHTML = '<tr><td colspan="9">Could not load rate match from the server (:8080).</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10">Running rate match…</td></tr>';
+
+    runStepOnce(3, RAIEC_API + '/tenders/' + id + '/rate-match',
+        {
+            title: 'Matching rates',
+            steps: [
+                'Reading the extracted line items…',
+                'Looking up IRUSSOR and CPWD DSR…',
+                'Checking Non-Scheduled items against the LAR dataset…',
+                'Calculating variance against tolerance…'
+            ]
+        },
+        renderRateMatch,
+        function () {
+            tbody.innerHTML = '<tr><td colspan="10">Could not load rate match from the server (:8080).</td></tr>';
         });
 }
 
@@ -540,7 +688,7 @@ function renderRateMatch(d) {
 
     var tbody = document.getElementById('rmTableBody');
     if (!d.items || !d.items.length) {
-        tbody.innerHTML = '<tr><td colspan="9">No rateable items.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10">No rateable items.</td></tr>';
         return;
     }
     tbody.innerHTML = d.items.map(function(it) {
@@ -632,7 +780,10 @@ function renderFinancials(f) {
         '<div class="wf-fin-lead" data-tone="' + (Number(f.excessTotal) > 0 ? 'over' : 'clear') + '">' +
           '<span class="wf-fin-lead-label">Quoted above reference</span>' +
           '<span class="wf-fin-lead-value">' + inrShort(f.excessTotal) + '</span>' +
-          '<span class="wf-fin-lead-sub">' + inr(f.excessTotal) + '</span>' +
+          // The exact figure only earns its line when the headline is abbreviated. Below a
+          // lakh the two are identical, and printing the same number twice reads as a bug.
+          (inrShort(f.excessTotal) !== inr(f.excessTotal)
+            ? '<span class="wf-fin-lead-sub">' + inr(f.excessTotal) + '</span>' : '') +
         '</div>' +
         '<dl class="wf-fin-grid">' +
           finStat('Estimate value', inrShort(f.quotedValue), inr(f.quotedValue)) +
@@ -641,11 +792,15 @@ function renderFinancials(f) {
           finStat('Quoted below reference', inrShort(f.savingTotal), 'counted separately from excess') +
           finStat('Net position', inrShort(f.netImpact),
                   Number(f.netImpact) > 0 ? 'above reference overall' : 'at or below reference overall') +
+          materialityStat(f) +
+          concentrationStat(f) +
         '</dl>' +
         (lowCoverage
           ? '<p class="wf-fin-warn">Only ' + coverage.toFixed(1) + '% of this estimate could be checked \u2014 ' +
             inrShort(f.unreferencedValue) + ' has no reference rate. The figures above describe the checked part only.</p>'
-          : '');
+          : '') +
+        renderClustering(f.clustering) +
+        renderBreakdowns(f);
 }
 
 function finStat(label, value, sub) {
@@ -654,6 +809,105 @@ function finStat(label, value, sub) {
              '<dd>' + escapeHtml(value) + '</dd>' +
              '<small>' + escapeHtml(sub) + '</small>' +
            '</div>';
+}
+
+/**
+ * Materiality: the excess measured against the size of the estimate.
+ *
+ * Without it, every tender's excess is an isolated number and the only way to compare
+ * two of them is to remember both totals. With it, a queue of tenders can be ranked.
+ */
+function materialityStat(f) {
+    if (f.materialityPct == null) return '';
+    var pct = Number(f.materialityPct);
+    var reading = pct === 0 ? 'at or below reference overall'
+                : pct < 1 ? 'a marginal share of the estimate'
+                : pct < 5 ? 'a noticeable share of the estimate'
+                : 'a large share of the estimate';
+    return finStat('Excess as share of estimate', pct.toFixed(2) + '%', reading);
+}
+
+/**
+ * Concentration: how few items carry most of the excess.
+ *
+ * A hundred flagged items is a week of work. "Four of them carry 80% of the money" is
+ * an afternoon, and it is the same information.
+ */
+function concentrationStat(f) {
+    if (!f.concentrationCount) return '';
+    var n = f.concentrationCount;
+    return finStat('Where the excess sits',
+                   n + (n === 1 ? ' item' : ' items'),
+                   'carry ' + Number(f.concentrationPct).toFixed(0) + '% of the excess');
+}
+
+/**
+ * The clustering signal, shown only when there is something to say.
+ *
+ * Deliberately worded as an observation rather than an accusation, and always paired
+ * with what the clustered items are worth: a share on its own invites a shrug, while
+ * the money attached to it is what justifies asking the question.
+ */
+function renderClustering(c) {
+    if (!c || !c.suspicious) return '';
+    return '<div class="wf-fin-signal" role="note">' +
+             '<div class="wf-fin-signal-head">' +
+               '<span class="wf-fin-signal-tag">Pattern</span>' +
+               '<span class="wf-fin-signal-title">Rates bunched just under the flag line</span>' +
+             '</div>' +
+             '<p class="wf-fin-signal-body">' + escapeHtml(c.note) + '</p>' +
+             '<p class="wf-fin-signal-meta">' +
+               escapeHtml(inrShort(c.valueInBand)) + ' of work sits in this band, ' +
+               escapeHtml(inrShort(c.excessInBand)) + ' of it above reference. ' +
+               'This is a pattern worth a question, not a finding on its own.' +
+             '</p>' +
+           '</div>';
+}
+
+/** Excess by schedule and by rate book, as proportion bars. */
+function renderBreakdowns(f) {
+    var bySchedule = f.bySchedule || [];
+    var bySource = f.bySource || [];
+    if (!bySchedule.length && !bySource.length) return '';
+
+    return '<div class="wf-fin-splits">' +
+             splitBlock('By schedule', bySchedule, 'schedule') +
+             splitBlock('By rate reference', bySource, 'source') +
+           '</div>';
+}
+
+function splitBlock(title, slices, kind) {
+    if (!slices.length) return '';
+
+    // Widest bar in the block sets the scale, so small slices stay visible instead of
+    // collapsing to a sliver against a dominant one.
+    var peak = slices.reduce(function (m, s) {
+        return Math.max(m, Number(s.excessTotal) || 0, 0);
+    }, 0);
+
+    var rows = slices.slice(0, 6).map(function (s) {
+        var excess = Number(s.excessTotal) || 0;
+        var width = peak > 0 ? Math.max((excess / peak) * 100, excess > 0 ? 4 : 0) : 0;
+        // An unreferenced slice has no excess by definition. Reporting its quoted value
+        // instead keeps unexamined money on screen rather than letting it total to zero
+        // and disappear, which is the opposite of what it deserves.
+        var unchecked = kind === 'source' && s.label === 'No reference';
+        var figure = unchecked ? inrShort(s.quotedValue) + ' unchecked' : inrShort(excess);
+
+        return '<li class="wf-fin-split-row"' + (unchecked ? ' data-unchecked="yes"' : '') + '>' +
+                 '<span class="wf-fin-split-label" title="' + escapeHtml(s.label) + '">' +
+                   escapeHtml(truncateRm(s.label, 26)) + '</span>' +
+                 '<span class="wf-fin-split-bar"><i style="width:' + width.toFixed(1) + '%"></i></span>' +
+                 '<span class="wf-fin-split-value">' + escapeHtml(figure) + '</span>' +
+                 '<span class="wf-fin-split-count">' + s.itemCount +
+                   (s.itemCount === 1 ? ' item' : ' items') + '</span>' +
+               '</li>';
+    }).join('');
+
+    return '<section class="wf-fin-split">' +
+             '<h3 class="wf-fin-split-title">' + escapeHtml(title) + '</h3>' +
+             '<ul class="wf-fin-split-list">' + rows + '</ul>' +
+           '</section>';
 }
 
 
@@ -702,9 +956,7 @@ function initAiAssessment() {
         if (badge) badge.textContent = '';
         return;
     }
-    raiecFetch(RAIEC_API + '/tenders/' + id + '/ai-summary')
-        .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-        .then(function(d) {
+    var renderAssessment = function (d) {
             if (txt) txt.textContent = d.summary || '';
             if (badge) {
                 var risk = (d.riskLevel || '').toUpperCase();
@@ -713,7 +965,14 @@ function initAiAssessment() {
                     : risk === 'MEDIUM' ? 'wf-badge-yellow' : 'wf-badge-green');
             }
             if (src) src.textContent = d.source === 'llm' ? 'Generated by AI model' : 'Rule-based assessment';
-        })
+    };
+
+    var cached = readStepCache('summary');
+    if (cached) { renderAssessment(cached); return; }
+
+    raiecFetch(RAIEC_API + '/tenders/' + id + '/ai-summary')
+        .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+        .then(function(d) { writeStepCache('summary', d); renderAssessment(d); })
         .catch(function() {
             if (txt) txt.textContent = 'Could not load the AI assessment from the server (:8080).';
             if (badge) badge.textContent = '';
@@ -727,17 +986,18 @@ function initAiAnalysis() {
         box.innerHTML = '<div class="wf-ai-card"><div class="wf-ai-content"><div class="wf-ai-desc">No tender loaded. Please upload an estimate first.</div></div></div>';
         return;
     }
-    showArrivalLoader('Running analysis', [
-            'Checking rates against tolerance…',
-            'Comparing NS items with accepted rates…',
-            'Verifying quantity × rate = amount…',
-            'Looking for duplicate proposals…'
-    ]);
-    raiecFetch(RAIEC_API + '/tenders/' + id + '/ai-analysis')
-        .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-        .then(function(d) { renderAiAnalysis(d); if (window.RAIEC_UI) RAIEC_UI.hideLoader(); })
-        .catch(function() {
-            if (window.RAIEC_UI) RAIEC_UI.hideLoader();
+    runStepOnce(4, RAIEC_API + '/tenders/' + id + '/ai-analysis',
+        {
+            title: 'Running analysis',
+            steps: [
+                'Checking rates against tolerance…',
+                'Comparing NS items with accepted rates…',
+                'Verifying quantity × rate = amount…',
+                'Looking for duplicate proposals…'
+            ]
+        },
+        renderAiAnalysis,
+        function () {
             box.innerHTML = '<div class="wf-ai-card"><div class="wf-ai-content"><div class="wf-ai-desc">Could not load AI analysis from the server (:8080).</div></div></div>';
         });
 }
@@ -801,7 +1061,68 @@ var AI_CHECK_META = {
 // ===== Step 5: officer review summary (from backend) =====
 document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('orEstValue')) initOfficerReview();
+    if (document.getElementById('orAuditTrail')) initAuditTrail();
 });
+
+
+/* -----------------------------------------------------------------------------
+   Audit trail
+
+   This panel used to show five fixed lines with times in June 2026. On the page
+   where an officer commits to a decision, that is the worst possible place for
+   invented history: the trail's entire value is that it can be relied on later,
+   and a decorative one is indistinguishable from a real one until someone needs
+   it. It now shows what the server recorded, or says plainly that it could not
+   be loaded.
+   -------------------------------------------------------------------------- */
+var AUDIT_TONE = {
+    APPROVED:       'good',
+    REJECTED:       'bad',
+    INFO_REQUESTED: 'warn',
+    RATE_MATCHED:   'info',
+    AI_ANALYSED:    'info',
+    SENT_TO_REVIEW: 'info'
+};
+
+function initAuditTrail() {
+    var host = document.getElementById('orAuditTrail');
+    var id = getState('tenderId');
+    if (!host) return;
+
+    if (!id) {
+        host.innerHTML = '<li class="wf-audit-empty">No tender loaded.</li>';
+        return;
+    }
+
+    raiecFetch(RAIEC_API + '/tenders/' + id + '/events')
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (list) {
+            if (!list || !list.length) {
+                host.innerHTML = '<li class="wf-audit-empty">Nothing recorded for this tender yet.</li>';
+                return;
+            }
+            host.innerHTML = list.map(function (e) {
+                var tone = AUDIT_TONE[e.type] || '';
+                var when = window.RAIEC_UI ? RAIEC_UI.formatDateTime(e.at) : '';
+                // The actor is the whole point of an audit trail, so it is shown on every
+                // row rather than only on the rows where a person happened to act.
+                var who = e.actor && e.actor !== 'system'
+                    ? 'by ' + escapeHtml(e.actor)
+                    : 'automatic';
+                return '<li class="wf-audit-item">' +
+                         '<div class="wf-audit-dot" data-tone="' + tone + '"></div>' +
+                         '<div class="wf-audit-content">' +
+                           '<div class="wf-audit-title">' + escapeHtml(e.detail || e.type) + '</div>' +
+                           '<div class="wf-audit-time">' + escapeHtml(when) +
+                             ' · <span class="wf-audit-actor">' + who + '</span></div>' +
+                         '</div>' +
+                       '</li>';
+            }).join('');
+        })
+        .catch(function () {
+            host.innerHTML = '<li class="wf-audit-empty">Could not load the audit trail from the server.</li>';
+        });
+}
 
 function initOfficerReview() {
     var id = getState('tenderId');
@@ -842,10 +1163,14 @@ function fillOfficerReview(detail, rm, ai) {
 
     // Submission details
     setRmText('orSubId', detail.tenderNo || '—');
-    setRmText('orSubDept', 'Civil & Construction');
+    // Was hard-coded to "Civil & Construction". The row now carries the tendering section
+    // the PDF actually names, and is labelled as such: every tender here comes from the
+    // Construction department, so a "Department" row was a constant pretending to be data.
+    setRmText('orSubDept', detail.tenderingSection || '—');
     setRmText('orSubZone', detail.division || '—');
     setRmText('orSubContract', detail.contractType || '—');
     setRmText('orSubBy', detail.post || '—');
+    setRmText('orSubUploaded', window.RAIEC_UI ? RAIEC_UI.formatDateTime(detail.createdAt) : '—');
 
     // Upload & OCR
     setRmText('orOcrMeta', rm.totalItems + ' line items');
@@ -1149,6 +1474,7 @@ function buildReportHtml(t, rm, ai, summary) {
                 + '% of this estimate could be checked.</strong> ' + inrShort(rm.financials.unreferencedValue)
                 + ' has no reference rate, so the figures above describe the checked part only.</p>'
               : '')
+          + reportAnalysis(rm.financials)
         : '')
       + '<h2>Rate comparison</h2><div class="cards">'
         + '<div class="card"><b>' + rm.totalItems + '</b>items checked</div>'
@@ -1167,6 +1493,67 @@ function buildReportHtml(t, rm, ai, summary) {
       + '<div class="foot">Generated ' + esc(generated)
       + '. Advisory only \u2014 the vetting decision rests with the reviewing officer.</div>'
       + '</div></body></html>';
+}
+
+
+/**
+ * The analysis section of the printable report: materiality, concentration, where the
+ * excess sits, and the clustering signal.
+ *
+ * The report is what gets attached to a file and read months later by someone who was
+ * not at the screen, so it has to carry the reasoning and not just the totals.
+ */
+function reportAnalysis(f) {
+    if (!f) return '';
+    var out = '';
+
+    var rows = [];
+    if (f.materialityPct != null) {
+        rows.push(['Excess as a share of the estimate', Number(f.materialityPct).toFixed(2) + '%']);
+    }
+    if (f.concentrationCount) {
+        rows.push(['Concentration',
+            f.concentrationCount + ' item(s) carry ' + Number(f.concentrationPct).toFixed(0) + '% of the excess']);
+    }
+    if (rows.length) {
+        out += '<dl class="kv">' + rows.map(function (r) {
+            return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>';
+        }).join('') + '</dl>';
+    }
+
+    out += reportSplit('Excess by schedule', f.bySchedule, false);
+    out += reportSplit('Excess by rate reference', f.bySource, true);
+
+    var c = f.clustering;
+    if (c && c.suspicious) {
+        out += '<h2>Pattern noted</h2>'
+             + '<p>' + esc(c.note) + '</p>'
+             + '<p class="sub">' + esc(inrShort(c.valueInBand)) + ' of work sits in this band, '
+             + esc(inrShort(c.excessInBand)) + ' of it above reference. '
+             + 'This is a pattern worth a question, not a finding on its own.</p>';
+    }
+    return out;
+}
+
+function reportSplit(title, slices, markUnchecked) {
+    if (!slices || !slices.length) return '';
+    var rows = slices.slice(0, 8).map(function (s) {
+        var unchecked = markUnchecked && s.label === 'No reference';
+        return '<tr><td>' + esc(s.label) + '</td>'
+             + '<td class="num">' + s.itemCount + '</td>'
+             + '<td class="num">' + esc(inrShort(s.quotedValue)) + '</td>'
+             + '<td class="num">' + (unchecked
+                    ? '<span class="muted">not checked</span>'
+                    : esc(inrShort(s.excessTotal))) + '</td>'
+             + '<td class="num">' + (unchecked ? '<span class="muted">—</span>'
+                    : Number(s.sharePct).toFixed(1) + '%') + '</td></tr>';
+    }).join('');
+
+    return '<h2>' + esc(title) + '</h2>'
+         + '<table><thead><tr><th>' + esc(title.replace('Excess by ', '')) + '</th>'
+         + '<th class="num">Items</th><th class="num">Quoted</th>'
+         + '<th class="num">Excess</th><th class="num">Share</th></tr></thead>'
+         + '<tbody>' + rows + '</tbody></table>';
 }
 
 
@@ -1272,6 +1659,7 @@ function showOutcome(action, message, body) {
     // Starting a new estimate must not inherit the finished one's state.
     document.getElementById('ocNext').addEventListener('click', function () {
         try {
+            clearStepCaches();
             sessionStorage.removeItem('raiec_tenderId');
             sessionStorage.removeItem('raiec_tenderSummary');
             sessionStorage.removeItem('raiec_uploadedFile');
@@ -1414,6 +1802,7 @@ function showDuplicateDialog(existing) {
 
     // Jump straight to the existing record rather than making them find it.
     document.getElementById('dupOpen').addEventListener('click', function () {
+        clearStepCaches();
         saveState('tenderId', existing.id);
         saveState('tenderSummary', {
             tenderNo: existing.tenderNo,

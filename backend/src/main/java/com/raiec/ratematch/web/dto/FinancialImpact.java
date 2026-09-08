@@ -1,6 +1,7 @@
 package com.raiec.ratematch.web.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * What the variances are worth in rupees.
@@ -22,6 +23,19 @@ import java.math.BigDecimal;
  *                           this the other totals invite a false conclusion: "₹0 excess"
  *                           reads as clean when it may only mean nothing was checkable.
  * @param unreferencedValue  value with no reference rate, which nobody has vetted
+ * @param materialityPct     excess as a share of the whole estimate. The rupee total says
+ *                           how much; this says how much it matters. ₹4 lakh over on a
+ *                           ₹50 lakh estimate is a different conversation from ₹4 lakh on
+ *                           ₹5 crore, and only this figure makes two tenders comparable.
+ * @param concentrationCount how many of the costliest items make up {@code concentrationPct}
+ *                           of the excess
+ * @param concentrationPct   the share of excess those items account for. "Three items carry
+ *                           82% of it" turns an unbounded list into an afternoon's work.
+ * @param bySchedule         excess attributed to each schedule, largest first
+ * @param bySource           excess attributed to each reference source, largest first.
+ *                           Unreferenced value appears here too, since the amount nobody
+ *                           could check belongs beside the amounts that were checked.
+ * @param clustering         whether variances bunch just under the flag threshold
  */
 public record FinancialImpact(
         BigDecimal quotedValue,
@@ -31,6 +45,12 @@ public record FinancialImpact(
         BigDecimal savingTotal,
         BigDecimal netImpact,
         BigDecimal coveragePct,
-        BigDecimal unreferencedValue
+        BigDecimal unreferencedValue,
+        BigDecimal materialityPct,
+        int concentrationCount,
+        BigDecimal concentrationPct,
+        List<ImpactSlice> bySchedule,
+        List<ImpactSlice> bySource,
+        ThresholdClustering clustering
 ) {
 }
