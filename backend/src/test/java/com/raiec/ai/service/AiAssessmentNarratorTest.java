@@ -18,12 +18,14 @@ class AiAssessmentNarratorTest {
     private RateMatchItem item(String desc, String status, String variance) {
         return new RateMatchItem("A", "C-1", desc, "DSR",
                 new BigDecimal("10"), "cum", new BigDecimal("100"), new BigDecimal("1000"),
-                new BigDecimal("87"), "DSR 2023", BigDecimal.ZERO, true, false,
+                new BigDecimal("87"), new BigDecimal("870"), new BigDecimal("130"),
+                "DSR 2023", BigDecimal.ZERO, true, false,
                 variance == null ? null : new BigDecimal(variance), status);
     }
 
     private RateMatchResponse rm(int total, int matched, int warn, int fail, int noRef, List<RateMatchItem> items) {
-        return new RateMatchResponse("232-25-26", "OCR_EXTRACTED", total, matched, warn, fail, noRef, items);
+        return new RateMatchResponse("232-25-26", "OCR_EXTRACTED", total, matched, warn, fail, noRef,
+                null, items);
     }
 
     private AiAnalysisResponse ai(int pass, int warn, int fail, List<AiCheck> checks) {

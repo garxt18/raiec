@@ -1844,3 +1844,130 @@ body.wf-leaving .wf-navbar { opacity: 1; }
     font-size: 14.5px;
     line-height: 1.65;
 }
+
+/* =============================================================================
+   Financial impact
+   Counting flags answers "how many things look wrong". The officer is asked what
+   the estimate costs, so the money leads and the counts support it.
+   ============================================================================= */
+
+.wf-financials {
+    display: grid;
+    grid-template-columns: minmax(210px, 260px) 1fr;
+    gap: 20px;
+    align-items: stretch;
+    background: var(--panel-60);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    margin: 0 0 16px;
+}
+
+/* The headline is the excess, not the tender's total. The total is a fact about the
+   document; the excess is the finding. */
+.wf-fin-lead {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 4px 18px 4px 0;
+    border-right: 1px solid var(--border-subtle);
+}
+
+.wf-fin-lead-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.wf-fin-lead-value {
+    font-size: clamp(28px, 3.2vw, 38px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.wf-fin-lead[data-tone="over"]  .wf-fin-lead-value { color: var(--accent-red); }
+.wf-fin-lead[data-tone="clear"] .wf-fin-lead-value { color: var(--accent-green); }
+
+.wf-fin-lead-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.wf-fin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px 20px;
+    margin: 0;
+    align-content: center;
+}
+
+.wf-fin-stat dt {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+}
+
+.wf-fin-stat dd {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.wf-fin-stat small {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* Low coverage is not a detail. Without it, an excess of zero reads as a clean
+   estimate when it may only mean almost nothing could be checked. */
+.wf-fin-warn {
+    grid-column: 1 / -1;
+    margin: 4px 0 0;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--tint-orange);
+    color: var(--accent-orange);
+    font-size: 12.5px;
+    line-height: 1.55;
+}
+
+/* ---- per-line impact ---- */
+.rm-impact {
+    text-align: right;
+    white-space: nowrap;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.rm-impact[data-tone="over"]  { color: var(--accent-red); }
+.rm-impact[data-tone="under"] { color: var(--accent-green); }
+.rm-impact[data-tone="none"]  { color: var(--text-muted); font-weight: 500; }
+
+.rm-impact-none {
+    font-size: 12px;
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+    .wf-financials { grid-template-columns: 1fr; }
+    .wf-fin-lead {
+        border-right: none;
+        border-bottom: 1px solid var(--border-subtle);
+        padding: 0 0 14px;
+    }
+}

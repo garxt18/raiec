@@ -9,6 +9,11 @@ import java.math.BigDecimal;
  * LAR rate). It is compared directly against the tender's unit rate: both are pre-escalation
  * figures, because the tender's escalation percentage is applied once to the schedule total rather
  * than to individual unit rates. {@code escalationPct} is carried here for display only.
+ *
+ * <p>{@code excessAmount} is what the variance is worth: quantity x (quoted - reference).
+ * Positive means the estimate asks for more than the reference supports. It is the figure
+ * to sort by — a percentage says how far off a rate is, while this says how much that
+ * distance costs, and the two rank items very differently.
  */
 public record RateMatchItem(
         String schedule,
@@ -20,6 +25,8 @@ public record RateMatchItem(
         BigDecimal tenderRate,
         BigDecimal amount,
         BigDecimal referenceRate,
+        BigDecimal referenceAmount,
+        BigDecimal excessAmount,
         String referenceSource,
         BigDecimal escalationPct,
         boolean atPar,

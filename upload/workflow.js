@@ -520,6 +520,7 @@ function initRateMatch() {
 }
 
 function renderRateMatch(d) {
+    renderFinancials(d.financials);
     setRmText('rmTotal', d.totalItems);
     setRmText('rmMatched', d.matched);
     setRmText('rmWarn', d.warn);
@@ -562,6 +563,7 @@ function renderRateMatch(d) {
             '<td>' + formatNum(it.tenderRate) + '</td>' +
             '<td>' + (it.amount != null ? formatNum(it.amount) : '—') + '</td>' +
             '<td>' + refCell + '</td>' +
+            '<td class="rm-impact" data-tone="' + impactTone(it.excessAmount) + '">' + impactCell(it.excessAmount) + '</td>' +
             '<td class="' + vCls + '">' + vTxt + '</td>' +
             '<td>' + rmStatusBadge(it.status, it.source) + '</td>' +
         '</tr>';
@@ -587,6 +589,90 @@ function buildRefCell(it) {
              + (it.referenceStale ? '⚠ ' : '') + escapeHtml(it.referenceSource) + '</span>';
     }
     return html;
+}
+
+
+
+/* =============================================================================
+   Money
+   Indian digit grouping throughout (12,34,567 not 1,234,567), and crore/lakh for
+   headline figures — that is how these values are read and discussed in a railway
+   office, and a figure nobody can read at a glance is not informing anyone.
+   ============================================================================= */
+function inr(n) {
+    if (n == null || isNaN(Number(n))) return '\u2014';
+    return '\u20b9' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+function inrShort(n) {
+    if (n == null || isNaN(Number(n))) return '\u2014';
+    var v = Math.abs(Number(n));
+    var sign = Number(n) < 0 ? '-' : '';
+    if (v >= 1e7)  return sign + '\u20b9' + (v / 1e7).toFixed(2).replace(/\.00$/, '') + ' Cr';
+    if (v >= 1e5)  return sign + '\u20b9' + (v / 1e5).toFixed(2).replace(/\.00$/, '') + ' L';
+    return sign + '\u20b9' + v.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+/**
+ * The financial summary above the comparison.
+ *
+ * Leads with excess rather than the tender's total value: the total is a fact about
+ * the document, while the excess is the finding — the number that decides whether
+ * this estimate needs work. Coverage sits alongside it because an excess of zero
+ * means nothing until you know how much was actually checked.
+ */
+function renderFinancials(f) {
+    var host = document.getElementById('wfFinancials');
+    if (!host || !f) return;
+
+    var coverage = Number(f.coveragePct);
+    var lowCoverage = coverage < 60;
+
+    host.innerHTML =
+        '<div class="wf-fin-lead" data-tone="' + (Number(f.excessTotal) > 0 ? 'over' : 'clear') + '">' +
+          '<span class="wf-fin-lead-label">Quoted above reference</span>' +
+          '<span class="wf-fin-lead-value">' + inrShort(f.excessTotal) + '</span>' +
+          '<span class="wf-fin-lead-sub">' + inr(f.excessTotal) + '</span>' +
+        '</div>' +
+        '<dl class="wf-fin-grid">' +
+          finStat('Estimate value', inrShort(f.quotedValue), inr(f.quotedValue)) +
+          finStat('Checked against a reference', coverage.toFixed(1) + '%',
+                  inrShort(f.comparableValue) + ' of ' + inrShort(f.quotedValue)) +
+          finStat('Quoted below reference', inrShort(f.savingTotal), 'counted separately from excess') +
+          finStat('Net position', inrShort(f.netImpact),
+                  Number(f.netImpact) > 0 ? 'above reference overall' : 'at or below reference overall') +
+        '</dl>' +
+        (lowCoverage
+          ? '<p class="wf-fin-warn">Only ' + coverage.toFixed(1) + '% of this estimate could be checked \u2014 ' +
+            inrShort(f.unreferencedValue) + ' has no reference rate. The figures above describe the checked part only.</p>'
+          : '');
+}
+
+function finStat(label, value, sub) {
+    return '<div class="wf-fin-stat">' +
+             '<dt>' + escapeHtml(label) + '</dt>' +
+             '<dd>' + escapeHtml(value) + '</dd>' +
+             '<small>' + escapeHtml(sub) + '</small>' +
+           '</div>';
+}
+
+
+/**
+ * What this line costs against its reference. Shown beside the percentage rather than
+ * instead of it: the percentage says how far off the rate is, this says what that
+ * distance is worth, and an officer needs both to decide whether to act.
+ */
+function impactCell(excess) {
+    if (excess == null) return '<span class="rm-impact-none">not checked</span>';
+    var n = Number(excess);
+    if (n === 0) return '<span class="rm-impact-none">\u2014</span>';
+    return (n > 0 ? '+' : '\u2212') + inrShort(Math.abs(n)).replace('\u20b9', '\u20b9\u2009');
+}
+
+function impactTone(excess) {
+    if (excess == null) return 'none';
+    var n = Number(excess);
+    return n > 0 ? 'over' : (n < 0 ? 'under' : 'none');
 }
 
 function rmStatusBadge(s, source) {
@@ -991,7 +1077,7 @@ function buildReportHtml(t, rm, ai, summary) {
     function money(v) { return v == null ? '\u2014' : Number(v).toLocaleString('en-IN'); }
 
     function itemRows(list) {
-        if (!list.length) return '<tr><td colspan="6" class="muted">None.</td></tr>';
+        if (!list.length) return '<tr><td colspan="7" class="muted">None.</td></tr>';
         return list.map(function (i) {
             return '<tr>'
                 + '<td>' + esc(i.description || i.itemCode || '') + '</td>'
@@ -1052,6 +1138,18 @@ function buildReportHtml(t, rm, ai, summary) {
         + '<dt>Advertised value</dt><dd>' + (t.advertisedValue != null ? '\u20b9 ' + money(t.advertisedValue) : '\u2014') + '</dd>'
         + '<dt>Status at analysis</dt><dd>' + esc(t.status || '\u2014') + '</dd>'
       + '</dl>'
+      + (rm.financials ? '<h2>Financial impact</h2><div class="cards">'
+            + '<div class="card"><b>' + inrShort(rm.financials.excessTotal) + '</b>quoted above reference</div>'
+            + '<div class="card"><b>' + inrShort(rm.financials.quotedValue) + '</b>estimate value</div>'
+            + '<div class="card"><b>' + Number(rm.financials.coveragePct).toFixed(1) + '%</b>checked against a reference</div>'
+            + '<div class="card"><b>' + inrShort(rm.financials.savingTotal) + '</b>quoted below reference</div>'
+          + '</div>'
+          + (Number(rm.financials.coveragePct) < 60
+              ? '<p class="sub"><strong>Only ' + Number(rm.financials.coveragePct).toFixed(1)
+                + '% of this estimate could be checked.</strong> ' + inrShort(rm.financials.unreferencedValue)
+                + ' has no reference rate, so the figures above describe the checked part only.</p>'
+              : '')
+        : '')
       + '<h2>Rate comparison</h2><div class="cards">'
         + '<div class="card"><b>' + rm.totalItems + '</b>items checked</div>'
         + '<div class="card"><b>' + rm.matched + '</b>within tolerance</div>'
@@ -1060,8 +1158,9 @@ function buildReportHtml(t, rm, ai, summary) {
       + '</div>'
       + '<p class="sub">' + rm.noReference + ' item(s) had no reference rate available and were not scored.</p>'
       + '<h2>Flagged items (' + flagged.length + ')</h2>'
+      + '<p class="sub">Ordered by rupee impact — the costliest first, not the largest percentage.</p>'
       + '<table><thead><tr><th>Description</th><th>Source</th><th class="num">Quoted</th>'
-      + '<th class="num">Reference</th><th class="num">Variance</th><th>Verdict</th></tr></thead>'
+      + '<th class="num">Reference</th><th class="num">Impact</th><th class="num">Variance</th><th>Verdict</th></tr></thead>'
       + '<tbody>' + itemRows(flagged) + '</tbody></table>'
       + '<h2>Automated checks</h2>' + checks
       + assessment
@@ -1194,7 +1293,7 @@ function exportRateReport() {
 
     var summary = getState('tenderSummary') || {};
     var header = ['Description', 'Source', 'Qty', 'Unit', 'Quoted rate', 'Amount',
-                  'Reference rate', 'Reference source', 'Variance %', 'Verdict'];
+                  'Reference rate', 'Reference source', 'Impact (INR)', 'Variance %', 'Verdict'];
 
     function cell(v) {
         var t = (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim();
@@ -1205,7 +1304,7 @@ function exportRateReport() {
     var lines = [header.map(cell).join(',')];
     rows.forEach(function (tr) {
         var td = tr.querySelectorAll('td');
-        if (td.length < 9) return;
+        if (td.length < 10) return;
         // The reference cell holds the rate on one line and its source on the next.
         var refParts = td[6].innerText.split('\n');
         lines.push([
@@ -1218,7 +1317,8 @@ function exportRateReport() {
             refParts[0] || '',
             refParts.slice(1).join(' ').trim(),
             td[7].innerText,
-            td[8].innerText
+            td[8].innerText,
+            td[9].innerText
         ].map(cell).join(','));
     });
 

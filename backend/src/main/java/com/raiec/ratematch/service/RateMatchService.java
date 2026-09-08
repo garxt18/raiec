@@ -2,6 +2,7 @@ package com.raiec.ratematch.service;
 
 import com.raiec.lar.entity.LarRecord;
 import com.raiec.lar.repository.LarRecordRepository;
+import com.raiec.ratematch.web.dto.FinancialImpact;
 import com.raiec.ratematch.web.dto.RateMatchItem;
 import com.raiec.ratematch.web.dto.RateMatchResponse;
 import com.raiec.reference.entity.DsrItem;
@@ -25,6 +26,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -161,9 +163,20 @@ public class RateMatchService {
                 default -> noRef++;
             }
         }
+
+        FinancialImpact financials = summariseMoney(items);
+
+        // Largest excess first. An officer works down a list until time runs out, so the
+        // costliest item must not sit wherever the PDF happened to put it. Items with no
+        // reference sort last: they are unchecked rather than acceptable, and the count
+        // plus the coverage figure carry that separately.
+        items.sort(Comparator.comparing(
+                (RateMatchItem i) -> i.excessAmount() == null ? BigDecimal.valueOf(Long.MIN_VALUE) : i.excessAmount(),
+                Comparator.reverseOrder()));
+
         return new RateMatchResponse(tenderNo,
                 tender.getStatus() != null ? tender.getStatus().name() : null,
-                items.size(), matched, warn, fail, noRef, items);
+                items.size(), matched, warn, fail, noRef, financials, items);
     }
 
     /**
@@ -188,6 +201,59 @@ public class RateMatchService {
         if (best == null || bestSim < minSimilarity) return null;
         String label = labelFn.apply(best) + " · ~" + Math.round(bestSim * 100) + "%";
         return new Best(rateFn.apply(best), label);
+    }
+
+    /**
+     * Totals the money behind the variances.
+     *
+     * <p>Excess and saving are kept apart rather than netted into one number. A tender
+     * that is ₹5 lakh over on one item and ₹5 lakh under on another is not the same as a
+     * tender that matches its references throughout, and a single net figure of zero
+     * would say it was.
+     */
+    private FinancialImpact summariseMoney(List<RateMatchItem> items) {
+        BigDecimal quoted = BigDecimal.ZERO;
+        BigDecimal comparable = BigDecimal.ZERO;
+        BigDecimal reference = BigDecimal.ZERO;
+        BigDecimal excess = BigDecimal.ZERO;
+        BigDecimal saving = BigDecimal.ZERO;
+
+        for (RateMatchItem it : items) {
+            BigDecimal lineValue = lineValue(it);
+            if (lineValue != null) quoted = quoted.add(lineValue);
+
+            if (it.excessAmount() == null || lineValue == null) continue;   // nothing to compare against
+
+            comparable = comparable.add(lineValue);
+            if (it.referenceAmount() != null) reference = reference.add(it.referenceAmount());
+
+            if (it.excessAmount().signum() > 0) excess = excess.add(it.excessAmount());
+            else saving = saving.add(it.excessAmount().abs());
+        }
+
+        BigDecimal coverage = quoted.signum() == 0 ? BigDecimal.ZERO
+                : comparable.multiply(HUNDRED).divide(quoted, 1, RoundingMode.HALF_UP);
+
+        return new FinancialImpact(
+                quoted.setScale(2, RoundingMode.HALF_UP),
+                comparable.setScale(2, RoundingMode.HALF_UP),
+                reference.setScale(2, RoundingMode.HALF_UP),
+                excess.setScale(2, RoundingMode.HALF_UP),
+                saving.setScale(2, RoundingMode.HALF_UP),
+                excess.subtract(saving).setScale(2, RoundingMode.HALF_UP),
+                coverage,
+                quoted.subtract(comparable).setScale(2, RoundingMode.HALF_UP));
+    }
+
+    /**
+     * The value of one line. Prefers the amount printed in the tender, falling back to
+     * quantity x rate — the printed amount is what the document actually claims, and
+     * PS-03 exists precisely because the two sometimes disagree.
+     */
+    private static BigDecimal lineValue(RateMatchItem it) {
+        if (it.amount() != null) return it.amount();
+        if (it.tenderRate() != null && it.quantity() != null) return it.tenderRate().multiply(it.quantity());
+        return null;
     }
 
     /** Keeps the lowest-rate record per description key. */
@@ -273,8 +339,20 @@ public class RateMatchService {
             else if (variance.compareTo(limits.getWarnPct()) > 0) status = "WARN";
             else status = "OK";
         }
+        // What the variance is worth. Quantity is what turns a percentage into money, so
+        // without it there is a rate difference but no impact to report.
+        BigDecimal referenceAmount = null;
+        BigDecimal excessAmount = null;
+        if (referenceRate != null && qty != null) {
+            referenceAmount = referenceRate.multiply(qty).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal quotedTotal = amount != null ? amount
+                    : tenderRate.multiply(qty).setScale(2, RoundingMode.HALF_UP);
+            excessAmount = quotedTotal.subtract(referenceAmount).setScale(2, RoundingMode.HALF_UP);
+        }
+
         return new RateMatchItem(schedule, code, desc, source, qty, unit, tenderRate, amount,
-                referenceRate, referenceSource, escl, atPar, stale, variance, status);
+                referenceRate, referenceAmount, excessAmount, referenceSource,
+                escl, atPar, stale, variance, status);
     }
 
     /**
