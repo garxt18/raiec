@@ -17,6 +17,9 @@ tenders-to-scan/
 test-tenders/*/
 # Local JSON snapshots taken before destructive operations.
 backups/
+# Exported rate-book rows. Derived from the licensed PDFs above, so it follows the
+# same rule: shared directly, not committed. The README explaining it IS tracked.
+deploy-data/*.sql
 
 # --- Large unused media (too big for GitHub; kept on disk / in the zip) ---
 videos/Banner video.mp4
