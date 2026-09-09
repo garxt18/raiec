@@ -771,7 +771,12 @@ function inrShort(n) {
  */
 function renderFinancials(f) {
     var host = document.getElementById('wfFinancials');
-    if (!host || !f) return;
+    if (!host) return;
+
+    // The section is a bordered card with its own background, so returning early on no
+    // data leaves an empty box on the page rather than nothing. Collapse it instead.
+    if (!f) { host.hidden = true; return; }
+    host.hidden = false;
 
     var coverage = Number(f.coveragePct);
     var lowCoverage = coverage < 60;

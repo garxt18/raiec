@@ -1851,6 +1851,9 @@ body.wf-leaving .wf-navbar { opacity: 1; }
    the estimate costs, so the money leads and the counts support it.
    ============================================================================= */
 
+/* Same trap as .ref-status: an author display value defeats [hidden], and this card
+   has a border and background, so it would show as an empty box. */
+.wf-financials[hidden] { display: none !important; }
 .wf-financials {
     display: grid;
     grid-template-columns: minmax(210px, 260px) 1fr;

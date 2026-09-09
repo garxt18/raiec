@@ -152,10 +152,25 @@
                         <path d="M2 12l10 5 10-5"/>
                     </svg>
                 </div>
-                <input type="text" class="search-input" id="homeSearchInput" placeholder="Tender Number" aria-label="Enter Tender Number">
-                <button class="btn-check-status" id="homeCheckBtn">Check Status</button>
+                <input type="text" class="search-input" id="homeSearchInput"
+                       placeholder="Search by tender number, the work, or a rate item"
+                       aria-label="Search tenders by number, work, or rate item"
+                       autocomplete="off" role="combobox" aria-expanded="false"
+                       aria-controls="homeSearchResult">
+                <button class="btn-check-status" id="homeCheckBtn">Search</button>
             </div>
-            <div id="homeSearchResult" class="home-search-result" hidden></div>
+            <p class="search-hint">Try a subject rather than a number — “laundry”, “earthwork Bikaner”, “RCC”.</p>
+            <div id="homeSearchResult" class="home-search-result" role="region"
+                 aria-live="polite" aria-label="Search results" hidden></div>
+        </div>
+    </section>
+
+    <!-- Rate-book readiness. Hidden while everything is loaded: a permanent green tick
+         trains people to stop reading it, so the banner only appears when it has something
+         to say. -->
+    <section class="reference-status-section">
+        <div class="reference-status-container">
+            <div id="homeRefStatus" class="ref-status" hidden></div>
         </div>
     </section>
 
@@ -359,7 +374,7 @@
                                 <tr>
                                     <th>Tender ID</th>
                                     <th>Work Title</th>
-                                    <th>Department</th>
+                                    <th>Filed by</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>

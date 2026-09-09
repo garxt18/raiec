@@ -1,6 +1,8 @@
 package com.raiec.reference.web;
 
 import com.raiec.reference.service.ReferenceImportService;
+import com.raiec.reference.web.dto.ReferenceStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,6 +26,16 @@ public class ReferenceImportController {
 
     public ReferenceImportController(ReferenceImportService referenceImportService) {
         this.referenceImportService = referenceImportService;
+    }
+
+    /**
+     * What the system has to check against. Readable by any signed-in user, unlike the
+     * import endpoints: an officer needs to know the tool is unarmed even though loading
+     * the books is not their job.
+     */
+    @GetMapping("/status")
+    public ReferenceStatus status() {
+        return referenceImportService.status();
     }
 
     @PostMapping("/import/irussor")

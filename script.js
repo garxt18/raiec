@@ -418,7 +418,7 @@ function togglePassword() {
             return '<tr>' +
                 '<td>' + esc(t.tenderNo) + '</td>' +
                 '<td>' + esc(truncate(t.nameOfWork || '', 40)) + '</td>' +
-                '<td>Civil &amp; Construction</td>' +
+                '<td>' + esc(t.post || t.division || '—') + '</td>' +
                 '<td><span class="status-badge ' + st.cls + '">' + st.label + '</span></td>' +
             '</tr>';
         }).join('');
@@ -467,42 +467,180 @@ function togglePassword() {
         }
     }
 
-    // ---- Tender search: real status lookup ----
+    /* ------------------------------------------------------------------
+       Tender search
+
+       This used to match a substring against the tender number and show the
+       first hit. That only helps someone who already knows the number, which
+       is when they least need help. The question actually being asked is
+       "have we tendered something like this before, and what did we pay", so
+       the search now runs on the server across the title, the office, and the
+       line items inside each document, and returns ranked results that each
+       say why they matched.
+       ------------------------------------------------------------------ */
     var btn = document.getElementById('homeCheckBtn');
     var input = document.getElementById('homeSearchInput');
     var result = document.getElementById('homeSearchResult');
+    var searchSeq = 0;
+
+    function showResult(html) {
+        if (!result) return;
+        result.hidden = false;
+        result.innerHTML = html;
+        if (input) input.setAttribute('aria-expanded', 'true');
+    }
 
     function runSearch() {
         if (!input || !result) return;
-        var q = input.value.trim().toLowerCase();
-        result.hidden = false;
+        var q = input.value.trim();
+
         if (!q) {
-            result.innerHTML = '<span style="color:var(--text-secondary)">Enter a tender number to check its status.</span>';
+            showResult('<p class="hs-note">Type a tender number, or what the work was.</p>');
             return;
         }
-        if (!tendersCache.length) {
-            result.innerHTML = '<span style="color:var(--text-secondary)">No tender data available (is the backend running?).</span>';
+
+        // Responses can land out of order when someone types quickly; only the newest
+        // one may draw, or an earlier query overwrites the current answer.
+        var seq = ++searchSeq;
+        showResult('<p class="hs-note">Searching\u2026</p>');
+
+        raiecFetch(API + '/search?limit=8&q=' + encodeURIComponent(q))
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(function (d) {
+                if (seq !== searchSeq) return;
+                renderSearch(d, q);
+            })
+            .catch(function () {
+                if (seq !== searchSeq) return;
+                showResult('<p class="hs-note hs-error">Could not reach the server, so nothing could be searched.</p>');
+            });
+    }
+
+    function renderSearch(d, typed) {
+        var hits = d.hits || [];
+
+        if (!hits.length) {
+            // An empty result is ambiguous, so say which kind it is. "Nothing matched" and
+            // "nothing exists yet" call for opposite next steps.
+            if (!d.searchedTenders) {
+                showResult('<p class="hs-note">No tenders have been uploaded yet, so there is nothing to search.</p>');
+            } else if (!(d.terms || []).length) {
+                showResult('<p class="hs-note">Those words appear in nearly every tender. Try a subject, a place, or a rate item.</p>');
+            } else {
+                showResult('<p class="hs-note">Nothing matching \u201c' + esc(typed) + '\u201d in ' +
+                           d.searchedTenders + ' tender' + (d.searchedTenders === 1 ? '' : 's') + '.</p>');
+            }
             return;
         }
-        var match = tendersCache.filter(function (t) {
-            return (t.tenderNo || '').toLowerCase().indexOf(q) !== -1;
-        })[0];
-        if (!match) {
-            result.innerHTML = '<span style="color:#f87171">No tender found matching “' + esc(input.value.trim()) + '”.</span>';
-            return;
-        }
-        var st = homeStatus(match.status);
-        result.innerHTML =
-            '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
-                '<strong>' + esc(match.tenderNo) + '</strong>' +
-                '<span class="status-badge ' + st.cls + '">' + st.label + '</span>' +
-                '<span style="color:var(--text-secondary)">' + esc(truncate(match.nameOfWork || '', 60)) + '</span>' +
-                '<button class="btn-check-status" style="margin-left:auto" onclick="openTender(' + match.id + ')">View</button>' +
-            '</div>';
+
+        var head = '<p class="hs-count">' + hits.length + ' of ' + d.searchedTenders +
+                   ' tender' + (d.searchedTenders === 1 ? '' : 's') + ' matched</p>';
+
+        var asked = (d.terms || []).length;
+        showResult(head + '<ul class="hs-list">' +
+                   hits.map(function (h) { return hitHtml(h, asked); }).join('') + '</ul>');
+    }
+
+    function hitHtml(h, asked) {
+        var st = homeStatus(h.status);
+        var value = h.advertisedValue != null ? shortINR(h.advertisedValue) : '';
+
+        // Why it matched, shown on every row. A search for "earthwork" can return a
+        // laundry tender because the hit came from a line item deep in the document;
+        // without saying so the result looks like a fault rather than the search working.
+        var reasons = (h.reasons || []).map(function (r) {
+            return '<li class="hs-reason"><span class="hs-reason-field">' + esc(r.field) + '</span>' +
+                   '<span class="hs-reason-text">' + esc(r.snippet) + '</span></li>';
+        }).join('');
+
+        return '<li class="hs-hit">' +
+                 '<button type="button" class="hs-open" onclick="openTender(' + h.id + ')">' +
+                   '<span class="hs-line">' +
+                     '<span class="hs-no">' + esc(h.tenderNo || '\u2014') + '</span>' +
+                     '<span class="status-badge ' + st.cls + '">' + st.label + '</span>' +
+                     (value ? '<span class="hs-value">' + esc(value) + '</span>' : '') +
+                   '</span>' +
+                   '<span class="hs-title">' + esc(h.nameOfWork || 'Untitled work') + '</span>' +
+                   (h.division || h.post
+                     ? '<span class="hs-place">' + esc([h.division, h.post].filter(Boolean).join(' \u00b7 ')) + '</span>'
+                     : '') +
+                   (reasons ? '<ul class="hs-reasons">' + reasons + '</ul>' : '') +
+                   partialNote(h, asked) +
+                 '</button>' +
+               '</li>';
+    }
+
+    /**
+     * Says so when a result only answered part of the query. Two words were typed and one
+     * matched: the tender is still worth showing, but the officer should not read it as
+     * having satisfied both.
+     */
+    function partialNote(h, asked) {
+        var got = (h.matchedTerms || []).length;
+        if (!asked || asked < 2 || got >= asked) return '';
+        return '<span class="hs-partial">matched ' + got + ' of ' + asked + ' search terms</span>';
+    }
+
+    /* Crore and lakh: how these figures are actually spoken about in a railway office. */
+    function shortINR(n) {
+        var v = Math.abs(Number(n));
+        if (isNaN(v)) return '';
+        if (v >= 1e7) return '\u20b9' + (v / 1e7).toFixed(2).replace(/\.00$/, '') + ' Cr';
+        if (v >= 1e5) return '\u20b9' + (v / 1e5).toFixed(2).replace(/\.00$/, '') + ' L';
+        return '\u20b9' + v.toLocaleString('en-IN', { maximumFractionDigits: 0 });
     }
 
     if (btn) btn.addEventListener('click', runSearch);
-    if (input) input.addEventListener('keydown', function (e) { if (e.key === 'Enter') runSearch(); });
+    if (input) {
+        input.addEventListener('keydown', function (e) { if (e.key === 'Enter') runSearch(); });
+
+        // Search as they type, once they have paused. The button stays for anyone who
+        // expects to press it.
+        var debounce;
+        input.addEventListener('input', function () {
+            clearTimeout(debounce);
+            var v = input.value.trim();
+            if (v.length < 2) {
+                searchSeq++;                       // abandon any answer still in flight
+                if (result) { result.hidden = true; input.setAttribute('aria-expanded', 'false'); }
+                return;
+            }
+            debounce = setTimeout(runSearch, 280);
+        });
+    }
+
+    /* ------------------------------------------------------------------
+       Rate-book readiness
+
+       With no rate book loaded, every scheduled item comes back unmatched,
+       the excess totals to zero, and the interface reports a clean estimate
+       it has no basis for. Saying so up front is the difference between a
+       tool that is honestly unarmed and one that quietly agrees with you.
+       ------------------------------------------------------------------ */
+    raiecFetch(API + '/reference/status')
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (st) {
+            var box = document.getElementById('homeRefStatus');
+            if (!box) return;
+
+            // Nothing to say when the books are loaded and rates are accumulating. A banner
+            // that is always present is a banner nobody reads.
+            if (st.ready && st.larRecords > 0) return;
+
+            box.hidden = false;
+            box.setAttribute('data-tone', st.ready ? 'info' : 'warn');
+            box.innerHTML =
+                '<span class="ref-status-title">' +
+                  (st.ready ? 'No accepted rates recorded yet' : 'No rate book loaded') +
+                '</span>' +
+                '<span class="ref-status-note">' + esc(st.note) + '</span>' +
+                '<span class="ref-status-counts">' +
+                  'IRUSSOR ' + Number(st.irussorItems).toLocaleString('en-IN') + ' \u00b7 ' +
+                  'CPWD DSR ' + Number(st.dsrItems).toLocaleString('en-IN') + ' \u00b7 ' +
+                  'LAR ' + Number(st.larRecords).toLocaleString('en-IN') +
+                '</span>';
+        })
+        .catch(function () { /* the offline case is already reported by the panels above */ });
 
     // ---- helpers ----
     function truncate(s, n) { s = s || ''; return s.length > n ? s.slice(0, n - 1) + '…' : s; }
