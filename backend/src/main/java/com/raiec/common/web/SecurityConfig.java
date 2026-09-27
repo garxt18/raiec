@@ -61,11 +61,18 @@ public class SecurityConfig {
                         // A hand-entered rate becomes a benchmark for every future tender,
                         // so it carries the same weight as one earned through an approval.
                         .requestMatchers(HttpMethod.POST, "/api/lar").hasRole("ADMIN")
+                        // The decisions themselves. A FILER is deliberately excluded: the
+                        // department that files an estimate must not be the one that passes
+                        // it, which is the separation the whole vetting step exists for.
                         .requestMatchers(HttpMethod.POST,
                                 "/api/tenders/*/approve",
                                 "/api/tenders/*/reject",
                                 "/api/tenders/*/send-to-review",
                                 "/api/tenders/*/request-info").hasAnyRole("OFFICER", "ADMIN")
+                        // Removing a tender destroys its audit trail along with it, so it
+                        // sits with the other department-wide powers rather than with the
+                        // everyday ones.
+                        .requestMatchers(HttpMethod.DELETE, "/api/tenders/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(
                         (request, response, authException) ->

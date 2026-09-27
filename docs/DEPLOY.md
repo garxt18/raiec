@@ -138,6 +138,60 @@ The value is remembered in `localStorage`. Clear it with `localStorage.removeIte
 
 ---
 
+## Keeping the backend awake
+
+Render's free tier suspends a web service after about 15 minutes without traffic. The next
+request then waits the better part of a minute while it starts. That is tolerable for you,
+who knows why it is slow, and looks broken to anyone you send the link to.
+
+The fix is a scheduled request to `/api/health`, which is public, needs no credentials, and
+checks the database — so a `200` proves both the service and Neon are reachable.
+
+### Option A — GitHub Actions (already in this repository)
+
+`.github/workflows/keep-awake.yml` pings the service every 10 minutes between 09:00 and
+21:00 IST on weekdays. Nothing to sign up for, and it lives with the code.
+
+1. Push the repository. GitHub picks the workflow up automatically.
+2. Open **Actions → Keep Render awake → Run workflow** to test it immediately rather than
+   waiting for the schedule.
+3. A green run means the service answered. A red one means it did not, which is itself
+   worth knowing.
+
+To stop it: **Actions → Keep Render awake → ⋯ → Disable workflow**.
+
+Two caveats worth knowing:
+
+- GitHub delays scheduled runs when it is busy, sometimes by several minutes. For keeping a
+  service warm that is harmless; it is not a precision timer.
+- GitHub **disables scheduled workflows in a repository with no activity for 60 days**. If
+  you stop committing for two months, the pings stop too.
+
+### Option B — cron-job.org (independent of GitHub)
+
+More reliable timing, and unaffected by repository activity.
+
+1. Sign up at **[cron-job.org](https://cron-job.org)** (free).
+2. **Create cronjob**.
+3. **URL**: `https://raiec-api.onrender.com/api/health`
+4. **Schedule**: every 10 minutes. Under the advanced settings you can restrict it to
+   working hours, which is worth doing for the reason below.
+5. Save, then use **Test run** to confirm a `200`.
+
+The dashboard keeps a history, so it doubles as a simple uptime record.
+
+### Do not ping around the clock
+
+A free Render service has a monthly instance-hour budget. Keeping it awake 24/7 consumes
+that budget for hours when nobody is using the site, and can leave it suspended when
+someone is. Restricting the pings to working hours is the point of the schedule above, not
+an oversight.
+
+If the site needs to be reliably instant for a demonstration, the honest fix is Render's
+paid tier, which does not sleep at all.
+
+---
+
 ## Schema changes and `ddl-auto=update`
 
 The app uses `spring.jpa.hibernate.ddl-auto=update`, which **adds** tables and columns but
@@ -166,6 +220,23 @@ ALTER TABLE tender ADD CONSTRAINT tender_status_check
 with every current value, so Neon will be correct from the start. Only databases created
 before the change need the statement above.
 
-The durable fix is **Flyway migrations** with `ddl-auto=validate`, which the application
-properties already flag as the intended direction. Until then, treat any change to an enum,
-a column type, or a length as needing a hand-written `ALTER` against existing databases.
+### This is now handled automatically
+
+Running that `ALTER` by hand works exactly once and is forgotten by the next deployment,
+which is why the same failure happened a second time when `FILER` was added to `Role`.
+
+`EnumConstraintSync` now runs at startup and rebuilds the check constraint for
+`app_user.role` and `tender.status` from the current Java enums. It is idempotent, so a
+boot where nothing changed does nothing, and it logs what it allowed:
+
+```
+Enum constraint app_user_role_check now allows 'FILER', 'OFFICER', 'ADMIN'
+```
+
+If that line is missing from the Render logs after a deploy, the statement above is still
+the manual fallback.
+
+**This covers enum values only.** Any other schema change — a column type, a length, a
+dropped field — still needs a hand-written `ALTER`. The durable fix remains **Flyway
+migrations** with `ddl-auto=validate`, which the application properties already flag as the
+intended direction.

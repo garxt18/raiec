@@ -113,6 +113,37 @@
 
     function escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
+    /**
+     * Adds the Administration link to the navigation, for administrators only.
+     *
+     * Injected rather than written into all ten pages, because a link repeated in ten
+     * files is a link that is eventually right in nine of them. The page itself and the
+     * server both refuse non-administrators regardless; hiding the link only avoids
+     * offering a door that will not open.
+     */
+    function addAdminNavLink(role) {
+        if (role !== 'admin') return;
+
+        var lists = document.querySelectorAll('.td-nav-links, .wf-nav-links, .nav-links');
+        lists.forEach(function (ul) {
+            if (ul.querySelector('[data-admin-link]')) return;
+
+            // Both page depths are one level below the site root, so the prefix is the
+            // same for every page that has a navigation bar.
+            var root = (window.RAIEC_CONFIG && window.RAIEC_CONFIG.siteRoot) || '';
+            var href = root + 'pages/administration.html';
+
+            var li = document.createElement('li');
+            var a = document.createElement('a');
+            a.href = href;
+            a.textContent = 'Administration';
+            a.setAttribute('data-admin-link', '');
+            if (location.pathname.indexOf('administration.html') !== -1) a.className = 'active';
+            li.appendChild(a);
+            ul.appendChild(li);
+        });
+    }
+
     // ----- UI touches: avatar initial + custom logout popover, home login link -----
     document.addEventListener('DOMContentLoaded', function () {
         var loggedIn = !!get(K.token);
@@ -122,6 +153,8 @@
 
         var avatars = document.querySelectorAll('.td-avatar, .g-avatar, .wf-avatar, .user-avatar');
         avatars.forEach(function (el) { el.textContent = initial; });
+
+        addAdminNavLink(role);
 
         if (loggedIn && avatars.length) {
             var menu = document.createElement('div');

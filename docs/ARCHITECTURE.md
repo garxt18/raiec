@@ -45,14 +45,14 @@ RAIEC/
 ├── frontend/              the web application  (Vercel Root Directory)
 │   ├── index.html         home: search, live overview, entry to the workflow
 │   ├── vercel.json        headers and caching; must sit at the Vercel root
-│   ├── pages/             dashboard · lar-dataset · guide · reports
+│   ├── pages/             dashboard · lar-dataset · guide · administration
 │   ├── workflow/          the five vetting steps, in order
 │   ├── scripts/
 │   │   ├── core/          config · auth · ui   (loaded by every page, in that order)
 │   │   ├── home.js        home page
 │   │   ├── dashboard.js   dashboard and LAR dataset
 │   │   ├── workflow.js    all five workflow steps
-│   │   └── reports.js     reports page (unfinished — see §7)
+│   │   └── administration.js   accounts and the decision record
 │   ├── styles/            theme.css (tokens) + one stylesheet per surface
 │   └── assets/            images/ and video/
 │
@@ -163,6 +163,18 @@ different messages, because they call for opposite responses from the officer.
 **Say what was not checked.** Coverage is reported alongside every total. Without it,
 "₹0 excess" reads as a clean estimate when it may only mean nothing was comparable.
 
+**Roles mirror the real parties.** A `FILER` (Construction) uploads and follows estimates
+but cannot decide on them; an `OFFICER` (Finance) decides; an `ADMIN` additionally holds
+the department-wide settings and the accounts. The department that files an estimate must
+not be the one that passes it, and that is enforced in the security filter chain rather
+than in the interface.
+
+**Enum constraints are repaired at startup.** `ddl-auto=update` adds columns but never
+widens an existing `CHECK`, so adding a value to an enum made every write of that value
+fail — once for `INFO_REQUESTED`, then again for `FILER`. `EnumConstraintSync` now rebuilds
+those constraints from the Java enums on boot, because a fix applied by hand works exactly
+once and is forgotten by the next deployment.
+
 **The audit trail is append-only.** Every lifecycle step records what happened, who caused
 it, when, and the excess at that moment — kept on the row because rate books change, and
 the question later is what the officer was shown, not what the tender would score today.
@@ -190,17 +202,11 @@ a minute. The interface says so rather than appearing to hang. Full steps are in
 
 Recorded here so they are not mistaken for finished work:
 
-- **`pages/reports.html` is unfinished.** It makes no API calls and nothing links to it.
-  Rebuild against real data or remove it.
 - **Rate matching does not compare units.** If a rate book prices per `cum` and the tender
   per `10 sqm`, the two are not comparable and the difference is reported as though it
   were. This is the most valuable correctness fix outstanding.
 - **LAR records cannot be corrected or deleted.** Since the lowest rate wins, one wrong low
   rate becomes the benchmark permanently.
-- **Only two roles exist** (`ADMIN`, `OFFICER`). The domain has three actors: the
-  Construction filer, the Finance vetter, and an administrator.
-- **`assets/images/nwr-headquarters.jpg` is referenced by the home page but absent**, so
-  that image is currently broken.
 - Working directories `rate-books/`, `sample-tenders/`, `tenders-to-scan/`,
   `test-tenders/` and `backups/` stay at the repository root because backend code and
   tests reach them by relative path. They are git-ignored, so they do not appear in a

@@ -1,0 +1,51 @@
+# Keeps the Render service from going to sleep during working hours.
+#
+# Render's free tier suspends a web service after about 15 minutes with no traffic, and
+# waking it again takes the better part of a minute. That is survivable for you, but it
+# makes the site look broken to anyone you hand the link to.
+#
+# This pings the public health endpoint, which needs no credentials and touches the
+# database, so a successful reply also proves Neon is reachable.
+#
+# Deliberately NOT every 5 minutes, all day. A free Render service has a monthly instance
+# budget, and keeping it awake around the clock burns it for hours when nobody is looking.
+# The schedule below covers roughly 9am-9pm India time on weekdays.
+#
+# To switch it off: GitHub → Actions → "Keep Render awake" → ⋯ → Disable workflow.
+
+name: Keep Render awake
+
+on:
+  schedule:
+    # Times are UTC. 03:30-15:30 UTC == 09:00-21:00 IST.
+    - cron: '*/10 3-15 * * 1-5'
+  # So you can prove it works without waiting for the schedule.
+  workflow_dispatch:
+
+# No repository contents are needed, so the token gets nothing.
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping the health endpoint
+        run: |
+          URL="https://raiec-api.onrender.com/api/health"
+
+          # A sleeping service can take ~60s to answer the first request, so allow for a
+          # cold start and retry rather than reporting failure while it is still waking.
+          for attempt in 1 2 3; do
+            code=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 90 "$URL" || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "awake (attempt $attempt): $(cat /tmp/body)"
+              exit 0
+            fi
+            echo "attempt $attempt returned $code; retrying in 30s"
+            sleep 30
+          done
+
+          echo "::error::$URL did not return 200 after 3 attempts (last code $code)"
+          cat /tmp/body || true
+          exit 1

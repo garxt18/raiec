@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script>
+        // Must run before any stylesheet is applied, otherwise the browser paints the
+        // default (dark) theme first and the correction shows up as a flash.
+        (function () {
+            try {
+                var t = localStorage.getItem('raiec_theme');
+                if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+            } catch (e) { /* storage blocked: fall back to prefers-color-scheme */ }
+        })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RAIEC administration - accounts and the record of who decided what.">
+    <title>Administration – RAIEC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles/theme.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <link rel="stylesheet" href="../styles/administration.css">
+</head>
+<body>
+    <a class="skip-link" href="#adminMain">Skip to content</a>
+
+    <!-- Background -->
+    <div class="video-bg-wrapper" aria-hidden="true">
+        <video class="video-bg" autoplay muted loop playsinline>
+            <source src="../assets/video/bg animation.mp4" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+    </div>
+    <div class="bg-streaks" aria-hidden="true">
+        <div class="streak streak-1"></div>
+        <div class="streak streak-2"></div>
+        <div class="streak streak-3"></div>
+        <div class="streak streak-4"></div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="td-navbar">
+        <div class="td-nav-container">
+            <div class="td-nav-left">
+                <a href="../index.html" style="display:flex"><img src="../assets/images/logo.webp" alt="RAIEC" class="td-nav-logo-img"></a>
+                <a href="../index.html" class="td-nav-brand">RAIEC</a>
+            </div>
+            <ul class="td-nav-links">
+                <li><a href="../workflow/step1-upload.html">Upload Estimate</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="lar-dataset.html">LAR Dataset</a></li>
+                <li><a href="guide.html">Guide</a></li>
+            </ul>
+            <div class="td-nav-right">
+                <div class="td-avatar">G</div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="td-page" id="adminMain">
+        <div class="td-breadcrumb">
+            <a href="../index.html">Homepage</a> / <span class="current">Administration</span>
+        </div>
+
+        <h1 class="td-page-title">Administration</h1>
+        <p class="td-page-subtitle">Accounts, and the record of who decided what.</p>
+
+        <!-- Shown instead of everything else when a non-admin opens this page directly.
+             The server refuses the data regardless; this explains the refusal rather than
+             leaving a screen of empty panels. -->
+        <section class="td-card admin-denied" id="adminDenied" hidden>
+            <h2 class="td-card-title">Administrator access only</h2>
+            <p class="admin-denied-note">
+                This page lists individual people and the decisions recorded against them,
+                so it is limited to administrators. If you need something from it, ask an
+                administrator rather than a colleague with the same role as you.
+            </p>
+            <p><a class="panel-link" href="dashboard.html">Back to the dashboard</a></p>
+        </section>
+
+        <div id="adminBody">
+            <!-- ================= Decisions ================= -->
+            <section class="td-card td-reveal" aria-labelledby="decisionsHeading">
+                <div class="td-card-header">
+                    <h2 class="td-card-title" id="decisionsHeading">Who has been deciding</h2>
+                    <span class="td-card-meta">Approvals, rejections, and what was let through</span>
+                </div>
+
+                <p class="admin-note">
+                    No single approval means anything on its own. What this table shows is the
+                    shape of a person's decisions: how often they approve, and how much above
+                    reference they have accepted. Both figures are measured as they stood at
+                    the moment each decision was taken.
+                </p>
+
+                <div class="admin-kpis" id="adminKpis"></div>
+
+                <div class="td-table-wrap">
+                    <table class="td-table admin-table">
+                        <caption class="sr-only">Decisions recorded against each person</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Person</th>
+                                <th scope="col" class="num">Approved</th>
+                                <th scope="col" class="num">Rejected</th>
+                                <th scope="col" class="num">Info sought</th>
+                                <th scope="col" class="num">Approval rate</th>
+                                <th scope="col" class="num">Excess let through</th>
+                                <th scope="col" class="num">Largest single</th>
+                                <th scope="col">Last decision</th>
+                            </tr>
+                        </thead>
+                        <tbody id="officerRows">
+                            <tr><td colspan="8" class="admin-empty">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ================= Recent decisions ================= -->
+            <section class="td-card td-reveal" aria-labelledby="recentHeading">
+                <div class="td-card-header">
+                    <h2 class="td-card-title" id="recentHeading">Recent decisions</h2>
+                    <span class="td-card-meta">Newest first, across every tender</span>
+                </div>
+                <ul class="admin-feed" id="decisionFeed">
+                    <li class="admin-empty">Loading…</li>
+                </ul>
+            </section>
+
+            <!-- ================= People ================= -->
+            <section class="td-card td-reveal" aria-labelledby="peopleHeading">
+                <div class="td-card-header">
+                    <h2 class="td-card-title" id="peopleHeading">People</h2>
+                    <button type="button" class="td-btn td-btn-primary" id="addUserBtn">Add account</button>
+                </div>
+
+                <p class="admin-note">
+                    A <strong>filer</strong> uploads estimates and follows them, and cannot decide
+                    on them. An <strong>officer</strong> approves, rejects, or asks for clarification.
+                    An <strong>administrator</strong> can additionally change thresholds, import rate
+                    books, and manage these accounts. The separation is the point: the department
+                    that files an estimate should not be the one that passes it.
+                </p>
+
+                <div class="td-table-wrap">
+                    <table class="td-table admin-table">
+                        <caption class="sr-only">User accounts</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Username</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Role</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Added</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userRows">
+                            <tr><td colspan="6" class="admin-empty">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="admin-msg" id="userMsg" role="status" hidden></p>
+            </section>
+        </div>
+    </main>
+
+    <script src="../scripts/core/config.js"></script>
+    <script src="../scripts/core/ui.js"></script>
+    <script src="../scripts/core/auth.js"></script>
+    <script src="../scripts/administration.js"></script>
+</body>
+</html>

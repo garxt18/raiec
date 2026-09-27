@@ -2,6 +2,8 @@ package com.raiec.tender.service;
 
 import com.raiec.tender.entity.TenderEvent;
 import com.raiec.tender.repository.TenderEventRepository;
+import com.raiec.tender.web.dto.AccountabilityResponse;
+import com.raiec.tender.web.dto.OfficerRecord;
 import com.raiec.tender.web.dto.TenderEventResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -10,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Writes and reads the tender audit trail.
@@ -105,6 +108,89 @@ public class TenderEventService {
         return repository.findByTypeOrderByAtDesc(RATE_MATCHED).stream()
                 .map(TenderEventResponse::from)
                 .toList();
+    }
+
+    /** The decision types, as opposed to the pipeline steps that happen on their own. */
+    private static final java.util.Set<String> DECISIONS =
+            java.util.Set.of(APPROVED, REJECTED, INFO_REQUESTED);
+
+    /**
+     * Groups every recorded decision by the person who made it.
+     *
+     * <p>See {@link com.raiec.tender.web.dto.OfficerRecord} for why this exists. The excess
+     * figures come from the rate-match entry that preceded each approval on the same
+     * tender, because an APPROVED row carries no excess of its own — the officer's decision
+     * is judged against the number that was on their screen at the time, which is exactly
+     * the number that entry recorded.
+     */
+    @Transactional(readOnly = true)
+    public AccountabilityResponse accountability() {
+        List<TenderEvent> all = repository.findAll();
+        all.sort(java.util.Comparator.comparing(TenderEvent::getAt,
+                java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())));
+
+        // Latest excess seen per tender, walking forward so each decision is paired with
+        // the most recent evaluation before it rather than with a later one.
+        Map<Long, BigDecimal> excessSoFar = new java.util.HashMap<>();
+        Map<String, int[]> counts = new java.util.LinkedHashMap<>();       // [approved, rejected, info]
+        Map<String, BigDecimal[]> money = new java.util.HashMap<>();       // [totalExcess, largest]
+        Map<String, java.time.Instant> lastAt = new java.util.HashMap<>();
+
+        int totalApproved = 0, unattributed = 0;
+        BigDecimal totalExcessLet = BigDecimal.ZERO;
+
+        for (TenderEvent e : all) {
+            if (RATE_MATCHED.equals(e.getType()) && e.getExcessAtEvent() != null) {
+                excessSoFar.put(e.getTenderId(), e.getExcessAtEvent());
+                continue;
+            }
+            if (!DECISIONS.contains(e.getType())) continue;
+
+            String actor = e.getActor();
+            if (actor == null || actor.isBlank() || "system".equals(actor)) {
+                unattributed++;
+                actor = "unattributed";
+            }
+
+            int[] c = counts.computeIfAbsent(actor, k -> new int[3]);
+            switch (e.getType()) {
+                case APPROVED -> c[0]++;
+                case REJECTED -> c[1]++;
+                default -> c[2]++;
+            }
+
+            if (APPROVED.equals(e.getType())) {
+                totalApproved++;
+                BigDecimal excess = excessSoFar.getOrDefault(e.getTenderId(), BigDecimal.ZERO);
+                totalExcessLet = totalExcessLet.add(excess);
+                BigDecimal[] m = money.computeIfAbsent(actor, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+                m[0] = m[0].add(excess);
+                if (excess.compareTo(m[1]) > 0) m[1] = excess;
+            }
+            if (e.getAt() != null) {
+                java.time.Instant prev = lastAt.get(actor);
+                if (prev == null || e.getAt().isAfter(prev)) lastAt.put(actor, e.getAt());
+            }
+        }
+
+        List<OfficerRecord> officers = counts.entrySet().stream()
+                .map(en -> {
+                    BigDecimal[] m = money.getOrDefault(en.getKey(), new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+                    int[] c = en.getValue();
+                    return new OfficerRecord(en.getKey(), c[0], c[1], c[2], m[0], m[1], lastAt.get(en.getKey()));
+                })
+                .sorted(java.util.Comparator.comparingInt(OfficerRecord::totalDecisions).reversed())
+                .toList();
+
+        List<TenderEventResponse> recent = all.stream()
+                .filter(e -> DECISIONS.contains(e.getType()))
+                .sorted(java.util.Comparator.comparing(TenderEvent::getAt,
+                        java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
+                .limit(25)
+                .map(TenderEventResponse::from)
+                .toList();
+
+        return new AccountabilityResponse(officers, recent, totalApproved, totalExcessLet, unattributed);
     }
 
     @Transactional(readOnly = true)
