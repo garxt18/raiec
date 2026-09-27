@@ -33,11 +33,46 @@
 
     var apiBase = resolveApiBase();
 
+    /**
+     * Where the site's top level is, worked out from this script's own URL.
+     *
+     * Pages sit at two depths (index.html at the top, pages/ and workflow/ one below),
+     * so any script that builds a link to another page needs to know which. Guessing it
+     * from location.pathname was how this used to work, and it meant a hard-coded check
+     * for the folder name '/upload/' that silently broke the moment the folder was
+     * renamed. This script is always at <root>/scripts/core/config.js, so stripping that
+     * suffix off its own src gives the root exactly, whether the site is served from a
+     * domain root, a subfolder, or a local file server.
+     */
+    function resolveSiteRoot() {
+        var self = document.currentScript && document.currentScript.src;
+        if (self) {
+            var at = self.indexOf('scripts/core/config.js');
+            if (at !== -1) return self.slice(0, at);
+        }
+        // currentScript is unavailable only in unusual loading modes; falling back to the
+        // document's own folder is right for the top-level page and wrong one level down,
+        // which is still better than throwing.
+        return '';
+    }
+
+    var siteRoot = resolveSiteRoot();
+
     window.RAIEC_CONFIG = {
         apiBase: apiBase,
         // Origin without the /api suffix - used in "server unreachable" messages.
         apiOrigin: apiBase.replace(/\/api\/?$/, ''),
-        isLocal: apiBase.indexOf('localhost') !== -1
+        isLocal: apiBase.indexOf('localhost') !== -1,
+        siteRoot: siteRoot
+    };
+
+    /**
+     * A URL for a page, given from the site's top level: raiecUrl('workflow/step1-upload.html').
+     * Use this instead of a relative path whenever the calling script runs on pages at
+     * more than one depth.
+     */
+    window.raiecUrl = function (path) {
+        return siteRoot + String(path).replace(/^\/+/, '');
     };
 })();
 

@@ -17,12 +17,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../theme.css">
-    <link rel="stylesheet" href="workflow.css">
+    <link rel="stylesheet" href="../styles/theme.css">
+    <link rel="stylesheet" href="../styles/workflow.css">
 </head>
 <body>
     <div class="video-bg-wrapper" aria-hidden="true">
-        <video class="video-bg" autoplay muted loop playsinline><source src="../videos/bg animation.mp4" type="video/mp4"></video>
+        <video class="video-bg" autoplay muted loop playsinline><source src="../assets/video/bg animation.mp4" type="video/mp4"></video>
         <div class="video-overlay"></div>
     </div>
     <div class="bg-streaks" aria-hidden="true">
@@ -32,14 +32,14 @@
     <nav class="wf-navbar">
         <div class="wf-nav-container">
             <div class="wf-nav-left">
-                <img src="../videos/logo.webp" alt="RAIEC" class="wf-nav-logo-img">
+                <img src="../assets/images/logo.webp" alt="RAIEC" class="wf-nav-logo-img">
                 <a href="../index.html" class="wf-nav-brand">RAIEC</a>
             </div>
             <ul class="wf-nav-links">
                 <li><a href="step1-upload.html" class="active">Upload estimate</a></li>
-                <li><a href="../tender-dashboard.html">Dashboard</a></li>
-                <li><a href="../lar-intelligence.html">LAR Dataset</a></li>
-                <li><a href="../guide.html">Guide</a></li>
+                <li><a href="../pages/dashboard.html">Dashboard</a></li>
+                <li><a href="../pages/lar-dataset.html">LAR Dataset</a></li>
+                <li><a href="../pages/guide.html">Guide</a></li>
             </ul>
             <div class="wf-nav-right"><div class="wf-avatar">G</div></div>
         </div>
@@ -128,9 +128,9 @@
             <div class="wf-footer-links"><a href="#">Privacy policy</a><a href="#">Terms of use</a><a href="#">Contact</a><a href="#">Documentation</a></div>
         </footer>
     </main>
-    <script src="../config.js"></script>
-    <script src="../ui.js"></script>
-    <script src="../auth.js"></script>
-    <script src="workflow.js"></script>
+    <script src="../scripts/core/config.js"></script>
+    <script src="../scripts/core/ui.js"></script>
+    <script src="../scripts/core/auth.js"></script>
+    <script src="../scripts/workflow.js"></script>
 </body>
 </html>

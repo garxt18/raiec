@@ -653,7 +653,7 @@ function togglePassword() {
 // Open a tender's extracted view (used by the home search "View" action).
 function openTender(id) {
     try { sessionStorage.setItem('raiec_tenderId', JSON.stringify(id)); } catch (e) {}
-    window.location.href = 'upload/step2-ocr-extract.html';
+    window.location.href = raiecUrl('workflow/step2-ocr-extract.html');
 }
 
 

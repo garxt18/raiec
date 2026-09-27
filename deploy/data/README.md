@@ -15,7 +15,7 @@ description that happened to begin with a number. Those are not in here.
 
 ### Loading it into Neon
 
-    psql "postgresql://USER:PASSWORD@HOST/neondb?sslmode=require" -f deploy-data/rate-books.sql
+    psql "postgresql://USER:PASSWORD@HOST/neondb?sslmode=require" -f deploy/data/rate-books.sql
 
 Use the connection string exactly as Neon gives it — the `postgresql://` form,
 not the `jdbc:` form the backend needs.

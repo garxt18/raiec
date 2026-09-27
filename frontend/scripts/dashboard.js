@@ -857,7 +857,7 @@
             '<td>' + dueText(t.closingDateTime) + '</td>' +
             '<td><div class="td-row-actions">' +
                 '<button class="td-action-btn" data-tooltip="View Tender" aria-label="View Tender" onclick="viewTender(' + t.id + ')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' +
-                '<button class="td-action-btn" data-tooltip="Scan / Upload Estimate" aria-label="Scan / Upload Estimate" onclick="window.location.href=\'upload/step1-upload.html\'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>' +
+                '<button class="td-action-btn" data-tooltip="Scan / Upload Estimate" aria-label="Scan / Upload Estimate" onclick="window.location.href=raiecUrl(\'workflow/step1-upload.html\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>' +
             '</div></td>' +
         '</tr>';
     }
@@ -911,7 +911,7 @@
 // View a tender's extracted items (used by the results table View action)
 function viewTender(id) {
     try { sessionStorage.setItem('raiec_tenderId', JSON.stringify(id)); } catch (e) {}
-    window.location.href = 'upload/step2-ocr-extract.html';
+    window.location.href = raiecUrl('workflow/step2-ocr-extract.html');
 }
 
 

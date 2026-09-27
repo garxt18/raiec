@@ -19,14 +19,14 @@ test-tenders/*/
 backups/
 # Exported rate-book rows. Derived from the licensed PDFs above, so it follows the
 # same rule: shared directly, not committed. The README explaining it IS tracked.
-deploy-data/*.sql
+deploy/data/*.sql
 
 # --- Large unused media (too big for GitHub; kept on disk / in the zip) ---
-videos/Banner video.mp4
-videos/train hd.mp4
-videos/train 1.mov
-videos/train 2.mp4
-videos/train 3.mp4
+frontend/assets/video/Banner video.mp4
+frontend/assets/video/train hd.mp4
+frontend/assets/video/train 1.mov
+frontend/assets/video/train 2.mp4
+frontend/assets/video/train 3.mp4
 
 # --- Local helper / generated files ---
 backend/login.json

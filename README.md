@@ -26,11 +26,11 @@ officer approve/reject workflow that continuously grows its own rate dataset.
 
 | Upload & OCR | Rate match |
 |---|---|
-| ![Upload](videos/raiec_upload_preview.png) | ![Rate match](videos/raiec_rate_match.png) |
+| ![Upload](frontend/assets/images/raiec_upload_preview.png) | ![Rate match](frontend/assets/images/raiec_rate_match.png) |
 
 | AI analysis | Officer review |
 |---|---|
-| ![AI analysis](videos/raiec_ai_analysis.png) | ![Officer review](videos/raiec_officer_review.png) |
+| ![AI analysis](frontend/assets/images/raiec_ai_analysis.png) | ![Officer review](frontend/assets/images/raiec_officer_review.png) |
 
 ---
 
@@ -73,7 +73,7 @@ com.raiec
 
 ## Quick start
 
-See **[SETUP.md](SETUP.md)** for full instructions. In short:
+See **[docs/SETUP.md](docs/SETUP.md)** for full instructions. In short:
 
 ```bash
 # 1. Create a PostgreSQL database named "raiec"
@@ -89,7 +89,7 @@ $env:DB_PASSWORD='your_postgres_password'
 Change these and set `RAIEC_JWT_SECRET` before any real deployment.
 
 **Optional:** load the DSR/IRUSSOR rate books for full rate comparison, and set `RAIEC_LLM_API_KEY`
-to enable the real LLM assessment — both are covered in SETUP.md.
+to enable the real LLM assessment — both are covered in docs/SETUP.md.
 
 ---
 

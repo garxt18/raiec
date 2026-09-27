@@ -376,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             host.innerHTML = recent.map(function (t) {
                 var when = window.RAIEC_UI ? RAIEC_UI.formatRelative(t.createdAt) : '';
-                return '<a class="wf-recent-item" href="../tender-dashboard.html">' +
+                return '<a class="wf-recent-item" href="../pages/dashboard.html">' +
                          '<div>' +
                            '<div class="wf-recent-id">' + escapeHtml(t.tenderNo || '—') + '</div>' +
                            '<div class="wf-recent-dept">' +

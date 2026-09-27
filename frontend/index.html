@@ -18,14 +18,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="theme.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles/theme.css">
+    <link rel="stylesheet" href="styles/home.css">
 </head>
 <body>
     <!-- Video Background -->
     <div class="video-bg-wrapper" aria-hidden="true">
         <video class="video-bg" autoplay muted loop playsinline>
-            <source src="videos/bg animation.mp4" type="video/mp4">
+            <source src="assets/video/bg animation.mp4" type="video/mp4">
         </video>
         <div class="video-overlay"></div>
     </div>
@@ -45,14 +45,14 @@
         <div class="nav-container">
             <a href="#" class="nav-logo" aria-label="Indian Railways Home">
                 <div class="logo-circle">
-                    <img src="videos/logo.webp" alt="RAIEC Logo" class="nav-logo-img">
+                    <img src="assets/images/logo.webp" alt="RAIEC Logo" class="nav-logo-img">
                 </div>
             </a>
             <ul class="nav-menu">
-                <li><a href="upload/step1-upload.html" class="nav-link">UPLOAD ESTIMATE</a></li>
-                <li><a href="tender-dashboard.html" class="nav-link">DASHBOARD</a></li>
-                <li><a href="lar-intelligence.html" class="nav-link">LAR DATASET</a></li>
-                <li><a href="guide.html" class="nav-link">GUIDE</a></li>
+                <li><a href="workflow/step1-upload.html" class="nav-link">UPLOAD ESTIMATE</a></li>
+                <li><a href="pages/dashboard.html" class="nav-link">DASHBOARD</a></li>
+                <li><a href="pages/lar-dataset.html" class="nav-link">LAR DATASET</a></li>
+                <li><a href="pages/guide.html" class="nav-link">GUIDE</a></li>
                 <li><a href="#" class="nav-link" onclick="openLoginModal();return false;">LOGIN</a></li>
             </ul>
             <button class="mobile-menu-btn" aria-label="Toggle menu" aria-expanded="false">
@@ -71,7 +71,7 @@
                 <p class="hero-description">Railway AI estimated checker - Intelligent Rate Analysis, Tender evaluation - all in one place</p>
                 <div class="hero-ctas">
                     <a href="#" class="btn btn-primary" onclick="openLoginModal();return false;">LOGIN</a>
-                    <a href="tender-dashboard.html" class="btn btn-outline">EXPLORE DASHBOARD</a>
+                    <a href="pages/dashboard.html" class="btn btn-outline">EXPLORE DASHBOARD</a>
                 </div>
             </div>
             <div class="hero-mockup">
@@ -179,7 +179,7 @@
         <h2 id="features-heading" class="sr-only">Platform Features</h2>
         <div class="features-container">
             <div class="feature-card feature-card-bg" id="upload">
-                <img src="videos/upload estimate.png" alt="" class="feature-bg-img" aria-hidden="true">
+                <img src="assets/images/upload estimate.png" alt="" class="feature-bg-img" aria-hidden="true">
                 <div class="feature-card-overlay"></div>
                 <div class="feature-card-glow"></div>
                 <div class="feature-card-content">
@@ -192,12 +192,12 @@
                         </svg>
                         <p>Convert estimates into structured and review-ready information.</p>
                     </div>
-                    <button class="btn-feature" onclick="window.location.href='upload/step1-upload.html'">UPLOAD TENDER</button>
+                    <button class="btn-feature" onclick="window.location.href='workflow/step1-upload.html'">UPLOAD TENDER</button>
                 </div>
             </div>
 
             <div class="feature-card feature-card-bg" id="dashboard-card">
-                <img src="videos/dashboard.png" alt="" class="feature-bg-img" aria-hidden="true">
+                <img src="assets/images/dashboard.png" alt="" class="feature-bg-img" aria-hidden="true">
                 <div class="feature-card-overlay"></div>
                 <div class="feature-card-glow"></div>
                 <div class="feature-card-content">
@@ -210,12 +210,12 @@
                         </svg>
                         <p>View all the rate analysis, track tenders & monitor in real time.</p>
                     </div>
-                    <button class="btn-feature" onclick="window.location.href='tender-dashboard.html'">EXPLORE DASHBOARD</button>
+                    <button class="btn-feature" onclick="window.location.href='pages/dashboard.html'">EXPLORE DASHBOARD</button>
                 </div>
             </div>
 
             <div class="feature-card feature-card-bg" id="lar">
-                <img src="videos/report.png" alt="" class="feature-bg-img" aria-hidden="true">
+                <img src="assets/images/report.png" alt="" class="feature-bg-img" aria-hidden="true">
                 <div class="feature-card-overlay"></div>
                 <div class="feature-card-glow"></div>
                 <div class="feature-card-content">
@@ -228,7 +228,7 @@
                         </svg>
                         <p>Browse the Last Accepted Rates database built from approved non-scheduled items.</p>
                     </div>
-                    <button class="btn-feature" onclick="window.location.href='lar-intelligence.html'">VIEW LAR DATASET</button>
+                    <button class="btn-feature" onclick="window.location.href='pages/lar-dataset.html'">VIEW LAR DATASET</button>
                 </div>
             </div>
         </div>
@@ -459,8 +459,8 @@
         </div>
 
         <div style="text-align:center;margin-top:44px;">
-            <a href="guide.html" class="btn btn-outline" style="margin-right:10px;">See how it works</a>
-            <a href="upload/step1-upload.html" class="btn btn-primary">Upload an estimate</a>
+            <a href="pages/guide.html" class="btn btn-outline" style="margin-right:10px;">See how it works</a>
+            <a href="workflow/step1-upload.html" class="btn btn-primary">Upload an estimate</a>
         </div>
 
         <p style="text-align:center;margin-top:54px;color:var(--text-muted);font-size:13px;">RAIEC · North Western Railway — Civil &amp; Construction · Internal estimate-vetting tool</p>
@@ -501,7 +501,7 @@
                 <!-- Drop the photograph at images/nwr-headquarters.jpg.
                      If it is missing the whole figure removes itself, so the section
                      never shows a broken-image icon. -->
-                <img src="images/nwr-headquarters.jpg"
+                <img src="assets/images/nwr-headquarters.jpg"
                      alt="North Western Railway headquarters, Jaipur"
                      loading="lazy"
                      onerror="var w=this.closest('.nwr-inner'); this.closest('.nwr-media').remove(); if(w) w.classList.add('no-media');">
@@ -515,7 +515,7 @@
         <div class="login-modal">
             <button class="login-modal-close" aria-label="Close login" onclick="closeLoginModal()">&times;</button>
             <div class="login-modal-brand">
-                <img src="videos/logo.webp" alt="RAIEC" class="login-modal-logo">
+                <img src="assets/images/logo.webp" alt="RAIEC" class="login-modal-logo">
                 <span class="login-modal-org">North Western Railway</span>
             </div>
             <h2 class="login-modal-title" id="loginModalTitle">Welcome Back</h2>
@@ -556,9 +556,9 @@
         </div>
     </div>
 
-    <script src="config.js"></script>
-    <script src="ui.js"></script>
-    <script src="auth.js"></script>
-    <script src="script.js"></script>
+    <script src="scripts/core/config.js"></script>
+    <script src="scripts/core/ui.js"></script>
+    <script src="scripts/core/auth.js"></script>
+    <script src="scripts/home.js"></script>
 </body>
 </html>

@@ -11,12 +11,17 @@
     // The home page carries the login modal; there we never redirect on 401 — the page
     // simply shows its empty state and the user can log in via the modal.
     function isHome() { return !!document.getElementById('loginModal'); }
-    function pathPrefix() { return location.pathname.indexOf('/upload/') !== -1 ? '../' : ''; }
+    // Resolved from config.js's own script URL, so it stays correct at any page depth
+    // and survives a folder being renamed. See resolveSiteRoot() in config.js.
+    function homeUrl(suffix) {
+        var root = (window.RAIEC_CONFIG && window.RAIEC_CONFIG.siteRoot) || '';
+        return root + 'index.html' + (suffix || '');
+    }
 
     function handle401() {
         if (isHome()) return;
         clear();
-        window.location.href = pathPrefix() + 'index.html?login=1';
+        window.location.href = homeUrl('?login=1');
     }
 
     // Attach the bearer token to API calls and centralise 401 handling.
@@ -101,7 +106,7 @@
         },
         logout: function () {
             clear();
-            window.location.href = pathPrefix() + 'index.html';
+            window.location.href = homeUrl();
         }
     };
     window.RAIEC = RAIEC;

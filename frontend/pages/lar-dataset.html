@@ -18,14 +18,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="theme.css">
-    <link rel="stylesheet" href="tender-dashboard.css">
+    <link rel="stylesheet" href="../styles/theme.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
 </head>
 <body>
     <!-- Background -->
     <div class="video-bg-wrapper" aria-hidden="true">
         <video class="video-bg" autoplay muted loop playsinline>
-            <source src="videos/bg animation.mp4" type="video/mp4">
+            <source src="../assets/video/bg animation.mp4" type="video/mp4">
         </video>
         <div class="video-overlay"></div>
     </div>
@@ -40,13 +40,13 @@
     <nav class="td-navbar">
         <div class="td-nav-container">
             <div class="td-nav-left">
-                <a href="index.html" style="display:flex"><img src="videos/logo.webp" alt="RAIEC" class="td-nav-logo-img"></a>
-                <a href="index.html" class="td-nav-brand">RAIEC</a>
+                <a href="../index.html" style="display:flex"><img src="../assets/images/logo.webp" alt="RAIEC" class="td-nav-logo-img"></a>
+                <a href="../index.html" class="td-nav-brand">RAIEC</a>
             </div>
             <ul class="td-nav-menu">
-                <li><a href="upload/step1-upload.html">Upload Estimate</a></li>
-                <li><a href="tender-dashboard.html">Dashboard</a></li>
-                <li><a href="lar-intelligence.html" class="active">LAR Dataset</a></li>
+                <li><a href="../workflow/step1-upload.html">Upload Estimate</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="lar-dataset.html" class="active">LAR Dataset</a></li>
                 <li><a href="guide.html">Guide</a></li>
             </ul>
             <div class="td-nav-right">
@@ -58,7 +58,7 @@
     <main class="td-page">
         <!-- Breadcrumb -->
         <div class="td-breadcrumb">
-            <a href="index.html">Homepage</a> / <span class="current">LAR Intelligence Center</span>
+            <a href="../index.html">Homepage</a> / <span class="current">LAR Intelligence Center</span>
         </div>
 
         <!-- Page Header -->
@@ -133,7 +133,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="larTableBody">
-                                    <!-- Rows rendered dynamically by tender-dashboard.js -->
+                                    <!-- Rows rendered dynamically by scripts/dashboard.js -->
                                 </tbody>
                             </table>
                         </div>
@@ -201,9 +201,9 @@
         </section>
     </main>
 
-    <script src="config.js"></script>
-    <script src="ui.js"></script>
-    <script src="auth.js"></script>
-    <script src="tender-dashboard.js"></script>
+    <script src="../scripts/core/config.js"></script>
+    <script src="../scripts/core/ui.js"></script>
+    <script src="../scripts/core/auth.js"></script>
+    <script src="../scripts/dashboard.js"></script>
 </body>
 </html>
